@@ -1,6 +1,7 @@
 package org.dirtymechanics.frc.component.drive;
 
 import edu.wpi.first.wpilibj.Jaguar;
+import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 
 /**
  * Controls the components of the drive train on the robot.
@@ -18,9 +19,9 @@ public class DriveTrain {
      */
     private final Jaguar driveRight;
     /**
-     * The object controlling the transmission state.
+     * The solenoid controlling the transmission.
      */
-    private final Transmission trans;
+    private final DoubleSolenoid trans;
 
     /**
      * @param driveLeft The PWM controller handling the speed of the left
@@ -30,7 +31,7 @@ public class DriveTrain {
      * @param trans The <CODE>Transmission</CODE> object controlling the
      * transmission state.
      */
-    public DriveTrain(Jaguar driveLeft, Jaguar driveRight, Transmission trans) {
+    public DriveTrain(Jaguar driveLeft, Jaguar driveRight, DoubleSolenoid trans) {
         this.driveLeft = driveLeft;
         this.driveRight = driveRight;
         this.trans = trans;

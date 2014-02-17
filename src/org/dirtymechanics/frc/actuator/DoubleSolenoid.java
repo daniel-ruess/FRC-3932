@@ -4,84 +4,111 @@ import edu.wpi.first.wpilibj.Relay;
 import org.dirtymechanics.frc.util.Updatable;
 
 /**
+ * Controls a double solenoid with logic to debounce input and disable redundant
+ * relays to conserve power.
  *
  * @author Daniel Ruess
- * 
- * The point of this is to...
  */
 public class DoubleSolenoid implements Updatable {
 
-    private static final int FIRE_WAIT = 500;
-    private static final int DEBOUNCE = 1000;
-
-    private final Relay relay1;
     /**
-     *
+     * The time to wait after firing to disable the open valve.
      */
-    private final Relay relay2;
+    private static final int FIRE_WAIT = 500;
+
+    /**
+     * The spike controlling the opening of the valve.
+     */
+    private final Relay openSpike;
+    /**
+     * The spike controlling the closing of the valve.
+     */
+    private final Relay closeSpike;
+    /**
+     * The time to wait between inputs.
+     */
+    private final int debounce;
     /**
      * The state of the solenoid.
      */
     private boolean state;
-
-    /** 
-     * Flip is the...
+    /**
+     * Whether or not the state has changes.
      */
-    private boolean flip = true;
-    private long flipTime;
-
-    /** 
-     * Whether or not to bounce?
+    private boolean stateChanged = true;
+    /**
+     * The time of the last state change.
      */
-    private boolean bounce = true;
-    private long bounceTime;
+    private long lastStateChange;
 
-    public DoubleSolenoid(Relay a, Relay b) {
-        this(a, b, false);
+    /**
+     * Creates a new double solenoid with a 1000ms debounce and initial state of
+     * false.
+     *
+     * @param openSpike The spike controlling the open valve.
+     * @param closeSpike The spike controlling the close valve.
+     */
+    public DoubleSolenoid(Relay openSpike, Relay closeSpike) {
+        this(openSpike, closeSpike, 1000, false);
     }
 
-    public DoubleSolenoid(Relay a, Relay b, boolean initialState) {
-        this.relay1 = a;
-        this.relay2 = b;
+    /**
+     * Creates a new double solenoid.
+     *
+     * @param openSpike The spike controlling the open valve.
+     * @param closeSpike The spike controlling the close valve.
+     * @param debounce The debounce time.
+     * @param initialState The initial state to start in.
+     */
+    public DoubleSolenoid(Relay openSpike, Relay closeSpike, int debounce, boolean initialState) {
+        this.openSpike = openSpike;
+        this.closeSpike = closeSpike;
+        this.debounce = debounce;
         this.state = initialState;
     }
 
-    public void setState(boolean state) {
-        if (System.currentTimeMillis() - bounceTime > DEBOUNCE) {
+    /**
+     * Sets the state of the solenoid. True being open, false being close.
+     *
+     * @param state The state of the solenoid.
+     */
+    public void set(boolean state) {
+        if (System.currentTimeMillis() - lastStateChange > debounce) {
             if (this.state != state) {
-                flip = true;
+                stateChanged = true;
             }
             this.state = state;
         } else {
-            bounceTime = System.currentTimeMillis();
+            lastStateChange = System.currentTimeMillis();
         }
     }
 
+    /**
+     * Inverts the state.
+     */
     public void flip() {
-        if (System.currentTimeMillis() - bounceTime > DEBOUNCE) {
-            flip = true;
-            state = !state;
-        } else {
-            bounceTime = System.currentTimeMillis();
-        }
+        set(!state);
     }
 
+    /**
+     * Called per cycle to update the state of the valves.
+     */
     public void update() {
-        if (flip) {
-            flipTime = System.currentTimeMillis();
-            flip = false;
+        if (stateChanged) {
+            lastStateChange = System.currentTimeMillis();
+            stateChanged = false;
         } else {
-            if (System.currentTimeMillis() - flipTime < FIRE_WAIT) {
+            if (System.currentTimeMillis() - lastStateChange < FIRE_WAIT) {
                 if (state) {
-                    relay1.set(Relay.Value.kForward);
-                    relay2.set(Relay.Value.kOn);
+                    openSpike.set(Relay.Value.kForward);
+                    closeSpike.set(Relay.Value.kOn);
                 } else {
-                    relay1.set(Relay.Value.kOn);
-                    relay2.set(Relay.Value.kForward);
+                    openSpike.set(Relay.Value.kOn);
+                    closeSpike.set(Relay.Value.kForward);
                 }
             } else {
-                relay1.set(Relay.Value.kOn);
-                relay2.set(Relay.Value.kOn);
+                openSpike.set(Relay.Value.kOn);
+                closeSpike.set(Relay.Value.kOn);
             }
         }
 
