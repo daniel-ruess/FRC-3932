@@ -3,5 +3,3 @@ build/
 j2meclasses/
 nbproject/
 suite/
-build.xml
-build.properties

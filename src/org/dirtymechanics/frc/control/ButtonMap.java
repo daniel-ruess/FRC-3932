@@ -64,6 +64,6 @@ public class ButtonMap {
                 mode = 0;
             }
         }
-        return 0;
+        return mode;
     }
 }

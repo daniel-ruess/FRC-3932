@@ -71,12 +71,21 @@ public class Stitch extends IterativeRobot {
      * The spike controlling the transmission close valve.
      */
     private final Relay transCloseSpike;
+    /**
+     * The spike controlling the open valve for the grabber.
+     */
     private final Relay grabberOpenSpike;
+    /**
+     * The spike controlling the close valve for the grabber.
+     */
     private final Relay grabberCloseSpike;
     /**
      * The solenoid to switch the transmission
      */
     private final DoubleSolenoid transmissionSolenoid;
+    /**
+     * The solenoid controlling the grabber.
+     */
     private final DoubleSolenoid grabberSolenoid;
     /**
      * The string encoder used for the screw drive.
@@ -131,7 +140,7 @@ public class Stitch extends IterativeRobot {
         grabberSolenoid = new DoubleSolenoid(grabberOpenSpike, grabberCloseSpike);
 
         firingOpenSpike = new Relay(5);
-        firingCloseSpike = new Relay(6);
+        firingCloseSpike = new Relay(7);
         firingSolenoid = new DoubleSolenoid(firingOpenSpike, firingCloseSpike);
 
         stringEncoder = new StringEncoder(1);
@@ -146,6 +155,9 @@ public class Stitch extends IterativeRobot {
 
         updatables = new List();
         updatables.put(transmissionSolenoid);
+        updatables.put(grabber);
+        updatables.put(firing);
+        updatables.put(boom);
     }
 
     /**
@@ -160,7 +172,6 @@ public class Stitch extends IterativeRobot {
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
-        // Set the motor speeds acording to the joyStick positions
         driveTrain.setLeftSpeed(buttonMap.getDriveLeft());
         driveTrain.setRightSpeed(buttonMap.getDriveLeft());
         driveTrain.setTransmissionGear(buttonMap.getTransmissionGear());
@@ -175,6 +186,9 @@ public class Stitch extends IterativeRobot {
                 boom.set(Boom.FIRING);
                 grabber.close();
                 roller.set(false);
+                if (buttonMap.fire()) {
+                    firing.fire();
+                }
                 break;
             case 2: //gathering
                 boom.set(Boom.GATHERING);
