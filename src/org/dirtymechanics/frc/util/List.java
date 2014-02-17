@@ -1,7 +1,7 @@
 package org.dirtymechanics.frc.util;
 
 /**
- *
+ * A basic List
  * @author Dan
  */
 public class List {

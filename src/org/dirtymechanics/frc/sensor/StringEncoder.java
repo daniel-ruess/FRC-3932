@@ -5,6 +5,8 @@ import edu.wpi.first.wpilibj.AnalogChannel;
 /**
  *
  * @author System32
+ * 
+ * This does....
  */
 public class StringEncoder extends AnalogChannel {
 

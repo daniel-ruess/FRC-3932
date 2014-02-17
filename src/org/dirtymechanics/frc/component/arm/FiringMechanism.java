@@ -5,7 +5,7 @@ import org.dirtymechanics.frc.sensor.StringEncoder;
 import org.dirtymechanics.frc.util.Updatable;
 
 /**
- * Represents the mechanism used to fire the robot.
+ * Represents the mechanism used to fire the ball of the robot.
  *
  * @author Daniel Ruess
  */
@@ -15,6 +15,9 @@ public class FiringMechanism implements Updatable {
 
     private final Jaguar motor;
     private final StringEncoder string;
+    /**
+     * This is...
+     */
     private int dest;
 
     public FiringMechanism(Jaguar motor, StringEncoder string) {
@@ -26,6 +29,9 @@ public class FiringMechanism implements Updatable {
         this.dest = dest;
     }
 
+    /**
+     * Set the ... to ...
+     */
     public void update() {
         int dist = string.getDistance();
         if (dest > dist) {

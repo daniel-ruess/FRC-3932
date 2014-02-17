@@ -20,21 +20,51 @@ import org.dirtymechanics.frc.util.Updatable;
  */
 public class Stitch extends IterativeRobot {
 
+    /**
+     * The Joystick used to control the speed of the leftDriveMotor
+     */
     private final Joystick joystickLeft;
+    /**
+     * The Joystick used to control the speed of the rightDriveMotor
+     */
     private final Joystick joystickRight;
 
+    /** 
+     * The main compressor
+     */
     private final Compressor compressor;
 
+    /**
+     * Motor to move the 3 left wheels
+     */
     private final Jaguar leftDriveMotor;
+    /** 
+     * Motor to move the 3 right wheels
+     */
     private final Jaguar rightDriveMotor;
 
+    /**
+     * The relay that ...
+     */
     private final Relay transOpenSpike;
+    /** 
+     * The relay that ...
+     */
     private final Relay transCloseSpike;
+    /** 
+     * The solenoid to switch the transmission
+     */
     private final DoubleSolenoid transmissionSolenoid;
     
+    /**
+     * The actual transmission
+     */
     private final Transmission transmission;
     private final DriveTrain driveTrain;
 
+    /** 
+     * List of all the updatable objects
+     */
     private final List updatables;
 
     public Stitch() {
@@ -62,6 +92,7 @@ public class Stitch extends IterativeRobot {
      * Called per first initialization of the robot.
      */
     public void robotInit() {
+        // Initiat the compressor for the pneumatic systems
         compressor.start();
     }
 
@@ -69,11 +100,15 @@ public class Stitch extends IterativeRobot {
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
+        // Set the motor speeds acording to the joyStick positions
         driveTrain.setLeftSpeed(joystickLeft.getY() * -1);
         driveTrain.setRightSpeed(joystickRight.getY() * -1);
         update();
     }
 
+    /**
+     * This function is used to update all the updatable objects
+     */
     private void update() {
         Object[] o = updatables.getObjects();
         for (int i = 0; i < o.length; ++i) {

@@ -6,25 +6,33 @@ import org.dirtymechanics.frc.util.Updatable;
 /**
  *
  * @author Daniel Ruess
+ * 
+ * The point of this is to...
  */
 public class DoubleSolenoid implements Updatable {
 
     private static final int FIRE_WAIT = 500;
     private static final int DEBOUNCE = 1000;
 
-    private final Relay a;
+    private final Relay relay1;
     /**
      *
      */
-    private final Relay b;
+    private final Relay relay2;
     /**
      * The state of the solenoid.
      */
     private boolean state;
 
+    /** 
+     * Flip is the...
+     */
     private boolean flip = true;
     private long flipTime;
 
+    /** 
+     * Whether or not to bounce?
+     */
     private boolean bounce = true;
     private long bounceTime;
 
@@ -33,8 +41,8 @@ public class DoubleSolenoid implements Updatable {
     }
 
     public DoubleSolenoid(Relay a, Relay b, boolean initialState) {
-        this.a = a;
-        this.b = b;
+        this.relay1 = a;
+        this.relay2 = b;
         this.state = initialState;
     }
 
@@ -65,15 +73,15 @@ public class DoubleSolenoid implements Updatable {
         } else {
             if (System.currentTimeMillis() - flipTime < FIRE_WAIT) {
                 if (state) {
-                    a.set(Relay.Value.kForward);
-                    b.set(Relay.Value.kOn);
+                    relay1.set(Relay.Value.kForward);
+                    relay2.set(Relay.Value.kOn);
                 } else {
-                    a.set(Relay.Value.kOn);
-                    b.set(Relay.Value.kForward);
+                    relay1.set(Relay.Value.kOn);
+                    relay2.set(Relay.Value.kForward);
                 }
             } else {
-                a.set(Relay.Value.kOn);
-                b.set(Relay.Value.kOn);
+                relay1.set(Relay.Value.kOn);
+                relay2.set(Relay.Value.kOn);
             }
         }
 

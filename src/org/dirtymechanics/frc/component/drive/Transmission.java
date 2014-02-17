@@ -14,10 +14,18 @@ public class Transmission {
      */
     private final DoubleSolenoid solenoid;
 
+    /**
+     * 
+     * @param solenoid The DoubleSolenoid that controls the Transmission
+     */
     public Transmission(DoubleSolenoid solenoid) {
         this.solenoid = solenoid;
     }
 
+    /**
+     * 
+     * @param state True is the high gear, false is the low gear.
+     */
     public void set(boolean state) {
         solenoid.setState(state);
     }
