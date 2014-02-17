@@ -1,5 +1,7 @@
 __MACOSX/
 build/
+j2meclasses/
 nbproject/
+suite/
 build.xml
 builc.properties
