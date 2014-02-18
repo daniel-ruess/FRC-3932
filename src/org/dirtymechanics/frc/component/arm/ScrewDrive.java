@@ -38,12 +38,12 @@ public class ScrewDrive implements Updatable {
     }
 
     public void update() {
-        int dist = string.getDistance();
-        if (destination > dist) {
+        int distance = string.getDistance();
+        if (destination > distance) {
             motor.set(SPEED);
-        } else if (dist > destination) {
-            if (dist - destination <= 4) {
-                double scale = (dist - destination) / 4;
+        } else if (distance > destination) {
+            if (distance - destination <= 4) {
+                double scale = (distance - destination) / 4;
                 motor.set(-1 * SPEED * scale);
             } else {
                 motor.set(-1 * SPEED);

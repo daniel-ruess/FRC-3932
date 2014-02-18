@@ -41,7 +41,7 @@ public class Stitch extends IterativeRobot {
     /**
      * The physical controller.
      */
-    private final Joystick joystickCont;
+    private final Joystick joystickController;
     /**
      * The compressor's controller.
      */
@@ -132,9 +132,9 @@ public class Stitch extends IterativeRobot {
     public Stitch() {
         joystickLeft = new Joystick(1);
         joystickRight = new Joystick(2);
-        joystickCont = new Joystick(3);
+        joystickController = new Joystick(3);
 
-        buttonMap = new ButtonMap(joystickLeft, joystickRight, joystickCont);
+        buttonMap = new ButtonMap(joystickLeft, joystickRight, joystickController);
 
         compressor = new Compressor(1, 1);
 
