@@ -3,7 +3,7 @@ package org.dirtymechanics.frc.component.arm;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 
 /**
- *
+ * This class represents the mechanism used to grab a ball.
  * @author Daniel Ruess
  */
 public class Grabber {
