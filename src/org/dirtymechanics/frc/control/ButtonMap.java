@@ -25,14 +25,26 @@ public class ButtonMap {
     }
 
     public double getDriveLeft() {
-        return left.getY();
+        double spd = left.getY();
+        double scale = 1;
+        if (spd < 0) {
+            scale *= -1;
+        }
+        spd *= spd;
+        return left.getY(); //spd * scale;
     }
 
     public double getDriveRight() {
-        return left.getY();
+        double spd = right.getY();
+        double scale = 1;
+        if (spd < 0) {
+            scale *= -1;
+        }
+        spd *= spd;
+        return right.getY();//spd * scale;
     }
 
-    public boolean getTransmissionGear() {
+    public boolean isTransmissionHigh() {
         boolean state = right.getRawButton(1);
         if (state != transmissionLast) {
             transmissionFlip++;

@@ -1,6 +1,6 @@
 package org.dirtymechanics.frc.component.arm;
 
-import edu.wpi.first.wpilibj.Jaguar;
+import edu.wpi.first.wpilibj.Talon;
 import org.dirtymechanics.frc.sensor.RotationalEncoder;
 import org.dirtymechanics.frc.util.Updatable;
 
@@ -24,11 +24,11 @@ public class Boom implements Updatable {
         }
     }
 
-    private final Jaguar motor;
+    private final Talon motor;
     private final RotationalEncoder rot;
     private Location dest;
 
-    public Boom(Jaguar motor, RotationalEncoder rot) {
+    public Boom(Talon motor, RotationalEncoder rot) {
         this.motor = motor;
         this.rot = rot;
     }

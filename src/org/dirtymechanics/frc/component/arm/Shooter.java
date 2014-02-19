@@ -8,10 +8,9 @@ import org.dirtymechanics.frc.util.Updatable;
  *
  * @author Daniel Ruess
  */
-public class FiringMechanism implements Updatable {
+public class Shooter implements Updatable {
 
-    private static final int FIRE_WAIT = 500;
-    private static final int RETRACT_WAIT = 1000;
+    private static final int FIRE_WAIT = 1000;
     public static final Location RESET = new Location(10);
     public static final Location FIRING = new Location(15);
 
@@ -47,7 +46,7 @@ public class FiringMechanism implements Updatable {
      * @param screw The screw drive.
      * @param firingPin The solenoid for releasing the buckle.
      */
-    public FiringMechanism(ScrewDrive screw, DoubleSolenoid firingPin) {
+    public Shooter(ScrewDrive screw, DoubleSolenoid firingPin) {
         this.screw = screw;
         this.firingPin = firingPin;
     }
@@ -65,7 +64,7 @@ public class FiringMechanism implements Updatable {
      * Fires the firing pin.
      */
     public void fire() {
-        firingPin.flip();
+        firingPin.set(true);
         fired = true;
         lastFired = System.currentTimeMillis();
     }
@@ -78,15 +77,15 @@ public class FiringMechanism implements Updatable {
     public void update() {
         if (System.currentTimeMillis() - lastFired > FIRE_WAIT) {
             if (fired) {
-                firingPin.flip();
+                firingPin.set(false);
                 fired = false;
             }
-            if (System.currentTimeMillis() - lastFired > RETRACT_WAIT) {
-                set(RESET);
-            }
+            //if (System.currentTimeMillis() - lastFired > RETRACT_WAIT) {
+            //    set(RESET);
+            //}
         }
-        if (screw.getPosition() == RESET.loc) {
-            screw.setDestination(FIRING.loc);
-        }
+        //if (screw.getPosition() == RESET.loc) {
+        //    screw.setDestination(FIRING.loc);
+        //}
     }
 }

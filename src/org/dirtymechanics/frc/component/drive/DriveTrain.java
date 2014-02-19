@@ -1,7 +1,6 @@
 package org.dirtymechanics.frc.component.drive;
 
 import edu.wpi.first.wpilibj.Jaguar;
-import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 
 /**
  * Controls the components of the drive train on the robot.
@@ -13,37 +12,19 @@ public class DriveTrain {
     /**
      * The PWM controller handling the speed of the left motors.
      */
-    private final Jaguar driveLeft;
+    private final Jaguar driveLeftA;
+    private final Jaguar driveLeftB;
     /**
      * The PWM controller handling the speed of the right motors.
      */
-    private final Jaguar driveRight;
-    /**
-     * The solenoid controlling the transmission.
-     */
-    private final DoubleSolenoid trans;
+    private final Jaguar driveRightA;
+    private final Jaguar driveRightB;
 
-    /**
-     * @param driveLeft The PWM controller handling the speed of the left
-     * motors.
-     * @param driveRight The PWM controller handling the speed of the right
-     * motors.
-     * @param trans The <CODE>Transmission</CODE> object controlling the
-     * transmission state.
-     */
-    public DriveTrain(Jaguar driveLeft, Jaguar driveRight, DoubleSolenoid trans) {
-        this.driveLeft = driveLeft;
-        this.driveRight = driveRight;
-        this.trans = trans;
-    }
-
-    /**
-     * Sets the state of the transmission.
-     *
-     * @param highGear Whether or not to use high gear.
-     */
-    public void setTransmissionGear(boolean highGear) {
-        trans.set(highGear);
+    public DriveTrain(Jaguar driveLeftA, Jaguar driveLeftB, Jaguar driveRightA, Jaguar driveRightB) {
+        this.driveLeftA = driveLeftA;
+        this.driveLeftB = driveLeftB;
+        this.driveRightA = driveRightA;
+        this.driveRightB = driveRightB;
     }
 
     /**
@@ -52,7 +33,8 @@ public class DriveTrain {
      * @param speed The speed.
      */
     public void setLeftSpeed(double speed) {
-        driveRight.set(speed);
+        driveRightA.set(speed);
+        driveRightB.set(-1 * speed);
     }
 
     /**
@@ -61,6 +43,18 @@ public class DriveTrain {
      * @param speed The speed.
      */
     public void setRightSpeed(double speed) {
-        driveLeft.set(speed);
+        driveLeftA.set(speed);
+        driveLeftB.set(-1 * speed);
+    }
+
+    /**
+     * Sets both of the speeds.
+     *
+     * @param left The left speed.
+     * @param right The right speed.
+     */
+    public void setSpeed(double left, double right) {
+        setLeftSpeed(left);
+        setRightSpeed(right);
     }
 }

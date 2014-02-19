@@ -1,6 +1,6 @@
 package org.dirtymechanics.frc.actuator;
 
-import edu.wpi.first.wpilibj.Relay;
+import edu.wpi.first.wpilibj.Solenoid;
 import org.dirtymechanics.frc.util.Updatable;
 
 /**
@@ -19,11 +19,11 @@ public class DoubleSolenoid implements Updatable {
     /**
      * The spike controlling the opening of the valve.
      */
-    private final Relay openSpike;
+    private final Solenoid openSpike;
     /**
      * The spike controlling the closing of the valve.
      */
-    private final Relay closeSpike;
+    private final Solenoid closeSpike;
     /**
      * The time to wait between inputs.
      */
@@ -48,7 +48,7 @@ public class DoubleSolenoid implements Updatable {
      * @param openSpike The spike controlling the open valve.
      * @param closeSpike The spike controlling the close valve.
      */
-    public DoubleSolenoid(Relay openSpike, Relay closeSpike) {
+    public DoubleSolenoid(Solenoid openSpike, Solenoid closeSpike) {
         this(openSpike, closeSpike, 1000, false);
     }
 
@@ -60,7 +60,7 @@ public class DoubleSolenoid implements Updatable {
      * @param debounce The debounce time.
      * @param initialState The initial state to start in.
      */
-    public DoubleSolenoid(Relay openSpike, Relay closeSpike, int debounce, boolean initialState) {
+    public DoubleSolenoid(Solenoid openSpike, Solenoid closeSpike, int debounce, boolean initialState) {
         this.openSpike = openSpike;
         this.closeSpike = closeSpike;
         this.debounce = debounce;
@@ -94,21 +94,29 @@ public class DoubleSolenoid implements Updatable {
      * Called per cycle to update the state of the valves.
      */
     public void update() {
+        if (state) {
+            openSpike.set(true);
+            closeSpike.set(false);
+        } else {
+            openSpike.set(false);
+            closeSpike.set(true);
+        }
+        if (true) return;
         if (stateChanged) {
             lastStateChange = System.currentTimeMillis();
             stateChanged = false;
         } else {
             if (System.currentTimeMillis() - lastStateChange < FIRE_WAIT) {
                 if (state) {
-                    openSpike.set(Relay.Value.kForward);
-                    closeSpike.set(Relay.Value.kOn);
+                    openSpike.set(true);
+                    closeSpike.set(false);
                 } else {
-                    openSpike.set(Relay.Value.kOn);
-                    closeSpike.set(Relay.Value.kForward);
+                    openSpike.set(false);
+                    closeSpike.set(true);
                 }
             } else {
-                openSpike.set(Relay.Value.kOn);
-                closeSpike.set(Relay.Value.kOn);
+                openSpike.set(false);
+                closeSpike.set(false);
             }
         }
 
