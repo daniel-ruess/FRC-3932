@@ -4,7 +4,6 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Jaguar;
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -86,7 +85,7 @@ public class Stitch extends IterativeRobot {
      */
     private final Solenoid grabSmallClose;
     /**
-     * The solenoid to switch the transmission
+     * The solenoid to switch the transmission.
      */
     private final DoubleSolenoid transmissionSolenoid;
     /**
@@ -273,6 +272,6 @@ public class Stitch extends IterativeRobot {
      * This function is called periodically during autonomous.
      */
     public void autonomousPeriodic() {
-
+        // TODO: Autonomous
     }
 }
