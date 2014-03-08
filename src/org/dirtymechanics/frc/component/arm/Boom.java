@@ -39,14 +39,7 @@ public class Boom implements Updatable {
     }
 
     public void update() {
-        if (Math.abs(rot.getDegrees() - dest.loc) > 3) {
-            if (rot.getDegrees() > dest.loc) {
-                
-            }
-        }
-        if (true) {
-            return;
-        }
+        /*
         if (Math.abs(rot.getDegrees() - dest.loc) > 3) {
             if (rot.getDegrees() > dest.loc) {
                 motor.set(-1 * SPEED);
@@ -57,6 +50,6 @@ public class Boom implements Updatable {
             }
         } else {
             motor.set(0);
-        }
+        }*/
     }
 }
