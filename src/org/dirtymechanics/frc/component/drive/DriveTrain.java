@@ -34,7 +34,7 @@ public class DriveTrain {
      */
     public void setLeftSpeed(double speed) {
         driveRightA.set(speed);
-        driveRightB.set(-1 * speed);
+        driveRightB.set(speed);
     }
 
     /**
@@ -44,7 +44,7 @@ public class DriveTrain {
      */
     public void setRightSpeed(double speed) {
         driveLeftA.set(speed);
-        driveLeftB.set(-1 * speed);
+        driveLeftB.set(speed);
     }
 
     /**

@@ -30,8 +30,7 @@ public class ButtonMap {
         if (spd < 0) {
             scale *= -1;
         }
-        spd *= spd;
-        return left.getY(); //spd * scale;
+        return spd * scale;
     }
 
     public double getDriveRight() {
@@ -40,8 +39,7 @@ public class ButtonMap {
         if (spd < 0) {
             scale *= -1;
         }
-        spd *= spd;
-        return right.getY();//spd * scale;
+        return spd * scale;
     }
 
     public boolean isTransmissionHigh() {

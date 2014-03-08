@@ -197,6 +197,8 @@ public class Stitch extends IterativeRobot {
         compressor.start();
     }
 
+    private int mode = 0, firingMode = 1;
+
     /**
      * This function is called periodically during operator control.
      */
@@ -210,47 +212,104 @@ public class Stitch extends IterativeRobot {
             transmission.setLow();
         }
 
-        if (joystickRight.getRawButton(5)) {
-            boomMotor.set(.5);
-        } else if (joystickRight.getRawButton(3)) {
-            boomMotor.set(-.5);
-        } else {
-            boomMotor.set(0);
+        if (joystickRight.getRawButton(11)) {
+            mode = 0;
+        } else if (joystickRight.getRawButton(10)) {
+            mode = 1;
+        } else if (joystickRight.getRawButton(6)) {
+            mode = 2;
+        } else if (joystickRight.getRawButton(7)) {
+            mode = 3;
         }
 
-        if (joystickRight.getRawButton(6)) {
-            screwMotor.set(-.5);
-        } else if (joystickRight.getRawButton(4)) {
-            screwMotor.set(.5);
-        } else {
-            screwMotor.set(0);
+        switch (mode) {
+            case 0: // gather
+                boom.set(Boom.GATHERING);
+                grabber.open();
+                roller.forward();
+                //if octoIsPressed mode = 1
+                break;
+            case 1: // gather (closed)
+                grabber.close();
+                roller.stop();
+                break;
+            case 2: // firing
+                boom.set(Boom.HIGH_GOAL);
+                grabber.close();
+                roller.stop();
+                break;
+            case 3: // firing
+                boom.set(Boom.LOW_GOAL);
+                grabber.close();
+                roller.stop();
+                break;
         }
 
-        if (joystickRight.getRawButton(2)) {
-            grabLargeSolenoid.set(true);
-            grabSmallSolenoid.set(true);
-        } else {
-            grabLargeSolenoid.set(false);
-            grabSmallSolenoid.set(false);
+        if (joystickRight.getRawButton(11)) {
+            firingMode = 0;
+        } else if (joystickRight.getRawButton(10)) {
+            firingMode = 1;
+        } else if (joystickRight.getRawButton(6)) {
+            firingMode = 2;
+        } else if (joystickRight.getRawButton(7)) {
+            firingMode = 3;
         }
 
-        if (joystickRight.getRawButton(12)) {
-            rollerMotor.set(-1);
-        } else {
-            rollerMotor.set(0);
+        switch (firingMode) {
+            case 0: // low
+                shooter.set(Shooter.LOW);
+                break;
+            case 1: // mid lows
+                shooter.set(Shooter.MID_LOW);
+                break;
+            case 2: // mid high
+                shooter.set(Shooter.MID_HIGH);
+                break;
+            case 3: // high
+                shooter.set(Shooter.HIGH);
+                break;
         }
-        
-        
+        /*
+         if (joystickRight.getRawButton(5)) {
+         boomMotor.set(.5);
+         } else if (joystickRight.getRawButton(3)) {
+         boomMotor.set(-.5);
+         } else {
+         boomMotor.set(0);
+         }
 
+         if (joystickRight.getRawButton(6)) {
+         screwMotor.set(-.5);
+         } else if (joystickRight.getRawButton(4)) {
+         screwMotor.set(.5);
+         } else {
+         screwMotor.set(0);
+         }
+
+         if (joystickRight.getRawButton(2)) {
+         grabLargeSolenoid.set(true);
+         grabSmallSolenoid.set(true);
+         } else {
+         grabLargeSolenoid.set(false);
+         grabSmallSolenoid.set(false);
+         }
+
+         if (joystickRight.getRawButton(12)) {
+         rollerMotor.set(-1);
+         } else {
+         rollerMotor.set(0);
+         }
+         */
         if (joystickLeft.getRawButton(1)) {
             shooter.fire();
         }
-
-        if (joystickRight.getRawButton(8)) {
-            lightSolenoid.set(true);
-        } else {
-            lightSolenoid.set(false);
-        }
+        /*
+         if (joystickRight.getRawButton(8)) {
+         lightSolenoid.set(true);
+         } else {
+         lightSolenoid.set(false);
+         }
+         */
         update();
         SmartDashboard.putNumber("Rot: ", rotEncoder.getDegrees());
         SmartDashboard.putNumber("Rot v: ", rotEncoder.getAverageVoltage());
