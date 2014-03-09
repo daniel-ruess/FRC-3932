@@ -28,7 +28,7 @@ import org.dirtymechanics.frc.util.Updatable;
  * creating this project, you must also update the manifest file in the resource
  * directory.
  */
-public class Stitch extends IterativeRobot {
+public class Woolly extends IterativeRobot {
 
     /**
      * The physical left joystick.
@@ -129,7 +129,7 @@ public class Stitch extends IterativeRobot {
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
 
-    public Stitch() {
+    public Woolly() {
         joystickLeft = new Joystick(1);
         joystickRight = new Joystick(2);
         joystickController = new Joystick(3);
