@@ -27,18 +27,15 @@ public class ButtonMap {
     public double getDriveLeft() {
         double spd = left.getY();
         double scale = 1;
-        if (spd < 0) {
-            scale *= -1;
+        if (left.getRawButton(1)) {
+            spd = right.getY();
         }
         return spd * scale;
     }
 
     public double getDriveRight() {
         double spd = right.getY();
-        double scale = 1;
-        if (spd < 0) {
-            scale *= -1;
-        }
+        double scale = -1;
         return spd * scale;
     }
 

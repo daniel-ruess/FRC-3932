@@ -81,7 +81,7 @@ public class Shooter implements Updatable {
             if (fired) {
                 firingPin.set(false);
                 fired = false;
-                set(MID_HIGH);
+                //set(MID_HIGH);
             }
         }
     }

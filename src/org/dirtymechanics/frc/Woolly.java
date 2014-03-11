@@ -1,9 +1,12 @@
 package org.dirtymechanics.frc;
 
 import edu.wpi.first.wpilibj.Compressor;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Jaguar;
 import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -67,7 +70,7 @@ public class Woolly extends IterativeRobot {
     /**
      * Jaguar controller the grabber's roller.
      */
-    private final Jaguar rollerMotor;
+    private final Relay rollerMotor;
     /**
      * The spike controlling the transmission open valve.
      */
@@ -100,6 +103,8 @@ public class Woolly extends IterativeRobot {
      * The rotational encoder used for the boom.
      */
     private final RotationalEncoder rotEncoder;
+
+    private final DigitalInput octo;
     /**
      * The button map used for controllers.
      */
@@ -144,7 +149,7 @@ public class Woolly extends IterativeRobot {
         rightDriveMotorA = new Jaguar(4);
         boomMotor = new Talon(5);
         screwMotor = new Jaguar(6);
-        rollerMotor = new Jaguar(7);
+        rollerMotor = new Relay(2);
 
         transOpen = new Solenoid(1, 7);
         transClose = new Solenoid(1, 8);
@@ -170,6 +175,7 @@ public class Woolly extends IterativeRobot {
 
         stringEncoder = new StringEncoder(1);
         rotEncoder = new RotationalEncoder(2);
+        octo = new DigitalInput(2);
 
         driveTrain = new DriveTrain(leftDriveMotorA, leftDriveMotorB, rightDriveMotorA, rightDriveMotorB);
         transmission = new Transmission(transmissionSolenoid);
@@ -186,7 +192,7 @@ public class Woolly extends IterativeRobot {
         updatables.put(firingSolenoid);
         updatables.put(rollerSolenoid);
         updatables.put(shooter);
-        //updatables.put(boom);
+        updatables.put(boom);
     }
 
     /**
@@ -197,13 +203,33 @@ public class Woolly extends IterativeRobot {
         compressor.start();
     }
 
-    private int mode = 0, firingMode = 1;
+    private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
+
+    private boolean a = true, aRelease = false;
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
-        //Static controls; do not change with mode.
+
+        if (joystickController.getRawButton(3)) {
+            screwMotor.set(-.5);
+        } else if (joystickController.getRawButton(2)) {
+            screwMotor.set(.5);
+        } else {
+            screwMotor.set(0);
+        }
+
+        if (joystickController.getRawButton(6)) {
+            grabSmallSolenoid.set(false);
+            roller.openArm();
+            roller.reverse();
+            shooter.fire();
+        } else {
+            roller.closeArm();
+            roller.stop();
+        }
+        
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
 
         if (buttonMap.isTransmissionHigh()) {
@@ -211,81 +237,146 @@ public class Woolly extends IterativeRobot {
         } else {
             transmission.setLow();
         }
+        
 
-        if (joystickRight.getRawButton(11)) {
+        boom.set(Boom.HIGH_GOAL);
+        update();
+        
+        
+        SmartDashboard.putNumber("Rot: ", rotEncoder.getVoltage());
+        SmartDashboard.putNumber("Rot a: ", rotEncoder.getAverageVoltage());
+        SmartDashboard.putNumber("Dist: ", stringEncoder.getVoltage());
+        SmartDashboard.putNumber("Dist: a", stringEncoder.getVoltage());
+        SmartDashboard.putNumber("Mode: ", mode);
+
+        if (true) {
+            return;
+        }
+        //Static controls; do not change with mode.
+        for (int i = 0; i < 30; ++i) {
+            if (joystickController.getRawButton(i)) {
+                System.out.println(i);
+            }
+        }
+
+        if (joystickController.getRawButton(3)) {
+            grabLargeSolenoid.set(true);
+        } else if (joystickController.getRawButton(2)) {
+            grabLargeSolenoid.set(false);
+        }
+
+        if (joystickController.getRawButton(4)) {
+            grabSmallSolenoid.set(true);
+        } else if (joystickController.getRawButton(1)) {
+            grabSmallSolenoid.set(false);
+        }
+        if (joystickController.getRawButton(6)) {
+            shooter.fire();
+        }
+        boom.set(Boom.LOW_GOAL);
+        update();
+        //if (a) {
+        driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
+
+        if (buttonMap.isTransmissionHigh()) {
+            transmission.setHigh();
+        } else {
+            transmission.setLow();
+        }
+        if (joystickController.getRawButton(4)) {
             mode = 0;
-        } else if (joystickRight.getRawButton(10)) {
+        } else if (joystickController.getRawButton(10)) {
             mode = 1;
-        } else if (joystickRight.getRawButton(6)) {
+        } else if (joystickController.getRawButton(6)) {
             mode = 2;
-        } else if (joystickRight.getRawButton(7)) {
+        } else if (joystickController.getRawButton(7)) {
             mode = 3;
         }
 
-        switch (mode) {
-            case 0: // gather
-                boom.set(Boom.GATHERING);
-                grabber.open();
-                roller.forward();
-                //if octoIsPressed mode = 1
-                break;
-            case 1: // gather (closed)
-                grabber.close();
-                roller.stop();
-                break;
-            case 2: // firing
-                boom.set(Boom.HIGH_GOAL);
-                grabber.close();
-                roller.stop();
-                break;
-            case 3: // firing
-                boom.set(Boom.LOW_GOAL);
-                grabber.close();
-                roller.stop();
-                break;
+        if (mode == 0) {
+            if (!octo.get()) {
+                //mode = 1;
+            }
         }
+
+        if (mode != lastMode) {
+            switch (mode) {
+                case 0: // gather
+                    boom.set(Boom.GATHERING);
+                    grabber.open();
+                    roller.forward();
+                    roller.closeArm();
+                    break;
+
+                case 1: // gather (closed)
+                    boom.set(Boom.GATHERING);
+                    grabber.close();
+                    roller.closeArm();
+                    roller.stop();
+                    break;
+
+                case 2: // firing H
+                    boom.set(Boom.HIGH_GOAL);
+                    grabber.close();
+                    roller.closeArm();
+                    roller.stop();
+                    break;
+
+                case 3: // firing L
+                    boom.set(Boom.LOW_GOAL);
+                    grabber.close();
+                    roller.closeArm();
+                    roller.stop();
+                    break;
+            }
+        }
+        lastMode = mode;
 
         if (joystickRight.getRawButton(11)) {
             firingMode = 0;
-        } else if (joystickRight.getRawButton(10)) {
+        } else if (joystickController.getRawButton(10)) {
             firingMode = 1;
-        } else if (joystickRight.getRawButton(6)) {
+        } else if (joystickController.getRawButton(6)) {
             firingMode = 2;
-        } else if (joystickRight.getRawButton(7)) {
+        } else if (joystickController.getRawButton(7)) {
             firingMode = 3;
         }
 
-        switch (firingMode) {
-            case 0: // low
-                shooter.set(Shooter.LOW);
-                break;
-            case 1: // mid lows
-                shooter.set(Shooter.MID_LOW);
-                break;
-            case 2: // mid high
-                shooter.set(Shooter.MID_HIGH);
-                break;
-            case 3: // high
-                shooter.set(Shooter.HIGH);
-                break;
+        if (firingMode != lastFiringMode) {
+            switch (firingMode) {
+                case 0: // low
+                    shooter.set(Shooter.LOW);
+                    break;
+                case 1: // mid lows
+                    shooter.set(Shooter.MID_LOW);
+                    break;
+                case 2: // mid high
+                    shooter.set(Shooter.MID_HIGH);
+                    break;
+                case 3: // high
+                    shooter.set(Shooter.HIGH);
+                    break;
+            }
+            lastFiringMode = firingMode;
         }
-        /*
-         if (joystickRight.getRawButton(5)) {
+        /*} else { // boom pos = d
+         if (joystickRight.getRawButton(3)) {
          boomMotor.set(.5);
-         } else if (joystickRight.getRawButton(3)) {
+         } else if (joystickRight.getRawButton(2)) {
          boomMotor.set(-.5);
          } else {
          boomMotor.set(0);
          }
 
-         if (joystickRight.getRawButton(6)) {
-         screwMotor.set(-.5);
-         } else if (joystickRight.getRawButton(4)) {
+         if (joystickLeft.getRawButton(3)) {
          screwMotor.set(.5);
+         } else if (joystickLeft.getRawButton(2)) {
+         screwMotor.set(-.5);
          } else {
          screwMotor.set(0);
-         }
+         }*/
 
+        /*
          if (joystickRight.getRawButton(2)) {
          grabLargeSolenoid.set(true);
          grabSmallSolenoid.set(true);
@@ -299,21 +390,25 @@ public class Woolly extends IterativeRobot {
          } else {
          rollerMotor.set(0);
          }
-         */
-        if (joystickLeft.getRawButton(1)) {
-            shooter.fire();
-        }
-        /*
          if (joystickRight.getRawButton(8)) {
          lightSolenoid.set(true);
          } else {
          lightSolenoid.set(false);
          }
          */
-        update();
-        SmartDashboard.putNumber("Rot: ", rotEncoder.getDegrees());
-        SmartDashboard.putNumber("Rot v: ", rotEncoder.getAverageVoltage());
-        SmartDashboard.putNumber("Dist: ", stringEncoder.getDistance());
+        //}
+        if (joystickRight.getRawButton(9) && !aRelease) {
+            a = !a;
+            aRelease = true;
+        } else {
+            aRelease = false;
+        }
+        //
+        SmartDashboard.putNumber("Rot: ", rotEncoder.getVoltage());
+        SmartDashboard.putNumber("Rot a: ", rotEncoder.getAverageVoltage());
+        SmartDashboard.putNumber("Dist: ", stringEncoder.getVoltage());
+        SmartDashboard.putNumber("Dist: a", stringEncoder.getVoltage());
+        SmartDashboard.putNumber("Mode: ", mode);
     }
 
     /**

@@ -10,17 +10,18 @@ import org.dirtymechanics.frc.util.Updatable;
  */
 public class Boom implements Updatable {
 
-    public static final Location RESTING = new Location(50);
-    public static final Location HIGH_GOAL = new Location(50);
-    public static final Location LOW_GOAL = new Location(50);
-    public static final Location GATHERING = new Location(18);
+    public static final Location RESTING = new Location(2.5);
+    public static final Location START = new Location(1.35);
+    public static final Location HIGH_GOAL = new Location(2);
+    public static final Location LOW_GOAL = new Location(3);
+    public static final Location GATHERING = new Location(4.25);
     private static final double SPEED = .8D;
 
     public static class Location {
 
-        private final int loc;
+        private final double loc;
 
-        private Location(int loc) {
+        private Location(double loc) {
             this.loc = loc;
         }
     }
@@ -39,17 +40,20 @@ public class Boom implements Updatable {
     }
 
     public void update() {
-        /*
-        if (Math.abs(rot.getDegrees() - dest.loc) > 3) {
-            if (rot.getDegrees() > dest.loc) {
-                motor.set(-1 * SPEED);
-            } else if (rot.getDegrees() < dest.loc) {
-                motor.set(SPEED);
+        double error = .08;
+        double dif = Math.abs(dest.loc - rot.getVoltage());
+        if (dif > error) {
+            if (dest.loc > rot.getVoltage()) {
+                motor.set(.7D);
+            } else {
+                motor.set(-.7D);
+            }
+        } else {
+            if (rot.getVoltage() > 1.7 && rot.getVoltage() < 4) {
+                motor.set(-.05);
             } else {
                 motor.set(0);
             }
-        } else {
-            motor.set(0);
-        }*/
+        }
     }
 }
