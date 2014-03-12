@@ -133,6 +133,7 @@ public class Woolly extends IterativeRobot {
     private final Solenoid lightSolenoid;
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
+    private long catchTime;
 
     public Woolly() {
         joystickLeft = new Joystick(1);
@@ -193,6 +194,7 @@ public class Woolly extends IterativeRobot {
         updatables.put(rollerSolenoid);
         updatables.put(shooter);
         updatables.put(boom);
+        updatables.put(screwDrive);
     }
 
     /**
@@ -205,31 +207,14 @@ public class Woolly extends IterativeRobot {
 
     private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
 
-    private boolean a = true, aRelease = false;
+    private boolean pressed = true, aRelease = false;
+
+    boolean released = true;
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
-
-        if (joystickController.getRawButton(3)) {
-            screwMotor.set(-.5);
-        } else if (joystickController.getRawButton(2)) {
-            screwMotor.set(.5);
-        } else {
-            screwMotor.set(0);
-        }
-
-        if (joystickController.getRawButton(6)) {
-            grabSmallSolenoid.set(false);
-            roller.openArm();
-            roller.reverse();
-            shooter.fire();
-        } else {
-            roller.closeArm();
-            roller.stop();
-        }
-        
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
 
         if (buttonMap.isTransmissionHigh()) {
@@ -237,178 +222,109 @@ public class Woolly extends IterativeRobot {
         } else {
             transmission.setLow();
         }
-        
 
-        boom.set(Boom.HIGH_GOAL);
-        update();
-        
-        
-        SmartDashboard.putNumber("Rot: ", rotEncoder.getVoltage());
-        SmartDashboard.putNumber("Rot a: ", rotEncoder.getAverageVoltage());
-        SmartDashboard.putNumber("Dist: ", stringEncoder.getVoltage());
-        SmartDashboard.putNumber("Dist: a", stringEncoder.getVoltage());
-        SmartDashboard.putNumber("Mode: ", mode);
-
-        if (true) {
-            return;
-        }
-        //Static controls; do not change with mode.
-        for (int i = 0; i < 30; ++i) {
-            if (joystickController.getRawButton(i)) {
-                System.out.println(i);
-            }
-        }
-
-        if (joystickController.getRawButton(3)) {
-            grabLargeSolenoid.set(true);
-        } else if (joystickController.getRawButton(2)) {
-            grabLargeSolenoid.set(false);
-        }
-
-        if (joystickController.getRawButton(4)) {
-            grabSmallSolenoid.set(true);
-        } else if (joystickController.getRawButton(1)) {
-            grabSmallSolenoid.set(false);
-        }
-        if (joystickController.getRawButton(6)) {
-            shooter.fire();
-        }
-        boom.set(Boom.LOW_GOAL);
-        update();
-        //if (a) {
-        driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
-
-        if (buttonMap.isTransmissionHigh()) {
-            transmission.setHigh();
-        } else {
-            transmission.setLow();
-        }
-        if (joystickController.getRawButton(4)) {
-            mode = 0;
-        } else if (joystickController.getRawButton(10)) {
-            mode = 1;
-        } else if (joystickController.getRawButton(6)) {
+        if (joystickController.getRawButton(4)) { // high 5
             mode = 2;
-        } else if (joystickController.getRawButton(7)) {
+        } else if (joystickController.getRawButton(2)) { // high 9
             mode = 3;
+        } else if (joystickController.getRawButton(1)) { // start
+            mode = 0;
+        } else if (joystickController.getRawButton(3)) { // gather
+            mode = 1;
+        } else if (joystickController.getRawButton(5)) { // close
+            mode = 4;
         }
 
-        if (mode == 0) {
-            if (!octo.get()) {
-                //mode = 1;
+        if (joystickController.getRawButton(8)) { // catch
+            if ((mode == 5 || mode == 10) && released) {
+                mode = 10;
+            } else {
+                mode = 5;
+                released = false;
             }
+        } else {
+            released = true;
         }
 
-        if (mode != lastMode) {
-            switch (mode) {
-                case 0: // gather
-                    boom.set(Boom.GATHERING);
-                    grabber.open();
-                    roller.forward();
-                    roller.closeArm();
-                    break;
-
-                case 1: // gather (closed)
-                    boom.set(Boom.GATHERING);
-                    grabber.close();
-                    roller.closeArm();
-                    roller.stop();
-                    break;
-
-                case 2: // firing H
-                    boom.set(Boom.HIGH_GOAL);
-                    grabber.close();
-                    roller.closeArm();
-                    roller.stop();
-                    break;
-
-                case 3: // firing L
-                    boom.set(Boom.LOW_GOAL);
-                    grabber.close();
-                    roller.closeArm();
-                    roller.stop();
-                    break;
-            }
+        if (joystickController.getRawButton(7)) {
+            roller.reverse();
         }
+
+        //if (mode != lastMode) {
+        switch (mode) {
+            case 0: // start
+                boom.set(Boom.START);
+                shooter.set(ScrewDrive.HIGH_9);
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(false);
+                roller.closeArm();
+                roller.stop();
+                break;
+            case 1: // gather
+                boom.set(Boom.GATHERING);
+                shooter.set(ScrewDrive.HIGH_9);
+                grabSmallSolenoid.set(true);
+                grabLargeSolenoid.set(false);
+                roller.closeArm();
+                roller.forward();
+                if (!octo.get()) {
+                    mode = 1;
+                }
+                break;
+            case 4: // gather (off)
+                boom.set(Boom.GATHERING);
+                shooter.set(ScrewDrive.HIGH_9);
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(false);
+                roller.closeArm();
+                roller.stop();
+                break;
+            case 2: // high 5
+                boom.set(Boom.HIGH_5);
+                shooter.set(ScrewDrive.HIGH_5);
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(false);
+                roller.closeArm();
+                roller.stop();
+                break;
+            case 3: // high 9
+                boom.set(Boom.HIGH_9);
+                shooter.set(ScrewDrive.HIGH_9);
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(false);
+                roller.closeArm();
+                roller.stop();
+                break;
+            case 5: // catching
+                boom.set(Boom.HIGH_5);
+                shooter.set(ScrewDrive.HIGH_5);
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(true);
+                roller.openArm();
+                roller.stop();
+                if (!octo.get()) {
+                    catchTime = System.currentTimeMillis();
+                    mode = 10;
+                }
+                break;
+            case 10: // catch
+                grabSmallSolenoid.set(false);
+                grabLargeSolenoid.set(false);
+                roller.stop();
+                if (System.currentTimeMillis() - catchTime > 500) {
+                    roller.closeArm();
+                }
+                break;
+        }
+        //}
         lastMode = mode;
 
-        if (joystickRight.getRawButton(11)) {
-            firingMode = 0;
-        } else if (joystickController.getRawButton(10)) {
-            firingMode = 1;
-        } else if (joystickController.getRawButton(6)) {
-            firingMode = 2;
-        } else if (joystickController.getRawButton(7)) {
-            firingMode = 3;
-        }
-
-        if (firingMode != lastFiringMode) {
-            switch (firingMode) {
-                case 0: // low
-                    shooter.set(Shooter.LOW);
-                    break;
-                case 1: // mid lows
-                    shooter.set(Shooter.MID_LOW);
-                    break;
-                case 2: // mid high
-                    shooter.set(Shooter.MID_HIGH);
-                    break;
-                case 3: // high
-                    shooter.set(Shooter.HIGH);
-                    break;
-            }
-            lastFiringMode = firingMode;
-        }
-        /*} else { // boom pos = d
-         if (joystickRight.getRawButton(3)) {
-         boomMotor.set(.5);
-         } else if (joystickRight.getRawButton(2)) {
-         boomMotor.set(-.5);
-         } else {
-         boomMotor.set(0);
-         }
-
-         if (joystickLeft.getRawButton(3)) {
-         screwMotor.set(.5);
-         } else if (joystickLeft.getRawButton(2)) {
-         screwMotor.set(-.5);
-         } else {
-         screwMotor.set(0);
-         }*/
-
-        /*
-         if (joystickRight.getRawButton(2)) {
-         grabLargeSolenoid.set(true);
-         grabSmallSolenoid.set(true);
-         } else {
-         grabLargeSolenoid.set(false);
-         grabSmallSolenoid.set(false);
-         }
-
-         if (joystickRight.getRawButton(12)) {
-         rollerMotor.set(-1);
-         } else {
-         rollerMotor.set(0);
-         }
-         if (joystickRight.getRawButton(8)) {
-         lightSolenoid.set(true);
-         } else {
-         lightSolenoid.set(false);
-         }
-         */
-        //}
-        if (joystickRight.getRawButton(9) && !aRelease) {
-            a = !a;
-            aRelease = true;
-        } else {
-            aRelease = false;
-        }
-        //
         SmartDashboard.putNumber("Rot: ", rotEncoder.getVoltage());
         SmartDashboard.putNumber("Rot a: ", rotEncoder.getAverageVoltage());
         SmartDashboard.putNumber("Dist: ", stringEncoder.getVoltage());
         SmartDashboard.putNumber("Dist: a", stringEncoder.getVoltage());
         SmartDashboard.putNumber("Mode: ", mode);
+        update();
     }
 
     /**

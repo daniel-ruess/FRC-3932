@@ -1,6 +1,7 @@
 package org.dirtymechanics.frc.component.arm;
 
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
+import org.dirtymechanics.frc.component.arm.ScrewDrive.Location;
 import org.dirtymechanics.frc.util.Updatable;
 
 /**
@@ -11,22 +12,7 @@ import org.dirtymechanics.frc.util.Updatable;
 public class Shooter implements Updatable {
 
     private static final int FIRE_WAIT = 1000;
-    public static final Location LOW = new Location(5);
-    public static final Location MID_LOW = new Location(10);
-    public static final Location MID_HIGH = new Location(15);
-    public static final Location HIGH = new Location(20);
 
-    /**
-     * Represents a location to move the screw drive to.
-     */
-    public static class Location {
-
-        private final int loc;
-
-        private Location(int loc) {
-            this.loc = loc;
-        }
-    }
     /**
      * The screw drive.
      */
@@ -59,7 +45,7 @@ public class Shooter implements Updatable {
      * @param dest The destination.
      */
     public void set(Location dest) {
-        screw.setDestination(dest.loc);
+        screw.set(dest);
     }
 
     /**
@@ -81,7 +67,7 @@ public class Shooter implements Updatable {
             if (fired) {
                 firingPin.set(false);
                 fired = false;
-                //set(MID_HIGH);
+                set(ScrewDrive.RESET);
             }
         }
     }
