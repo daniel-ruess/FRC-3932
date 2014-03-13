@@ -73,14 +73,10 @@ public class DoubleSolenoid implements Updatable {
      * @param state The state of the solenoid.
      */
     public void set(boolean state) {
-        if (System.currentTimeMillis() - lastStateChange > debounce) {
-            if (this.state != state) {
-                stateChanged = true;
-            }
-            this.state = state;
-        } else {
-            lastStateChange = System.currentTimeMillis();
+        if (this.state != state) {
+            stateChanged = true;
         }
+        this.state = state;
     }
 
     /**
@@ -101,7 +97,9 @@ public class DoubleSolenoid implements Updatable {
             openSpike.set(false);
             closeSpike.set(true);
         }
-        if (true) return;
+        if (true) {
+            return;
+        }
         if (stateChanged) {
             lastStateChange = System.currentTimeMillis();
             stateChanged = false;

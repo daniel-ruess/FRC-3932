@@ -14,7 +14,6 @@ public class ScrewDrive implements Updatable {
     public static final Location HIGH_5 = new Location(2.1);
     public static final Location HIGH_9 = new Location(2.25);
     public static final Location RESET = new Location(1);
-    private Location nextDestination;
 
     /**
      * Represents a location to move the screw drive to.
@@ -35,6 +34,7 @@ public class ScrewDrive implements Updatable {
     private final Jaguar motor;
     private final StringEncoder string;
     private Location destination = HIGH_5;
+    private Location nextDestination = RESET;
     private boolean resetting = true;
 
     public ScrewDrive(Jaguar motor, StringEncoder string) {
@@ -77,12 +77,12 @@ public class ScrewDrive implements Updatable {
         } else {
             motor.set(0);
             if (resetting) {
-                resetting = false;
                 if (nextDestination.loc == RESET.loc) {
                     set(HIGH_5);
                 } else {
                     set(nextDestination);
                 }
+                resetting = false;
             }
         }
     }

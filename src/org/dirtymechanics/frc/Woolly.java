@@ -2,13 +2,13 @@ package org.dirtymechanics.frc;
 
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
-import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.Jaguar;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
@@ -130,10 +130,13 @@ public class Woolly extends IterativeRobot {
     private final DoubleSolenoid grabLargeSolenoid;
     private final Solenoid rollerOpen;
     private final Solenoid rollerClose;
-    private final Solenoid lightSolenoid;
+    private final Solenoid lightSolenoidA;
+    private final Solenoid lightSolenoidB;
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
     private long catchTime;
+    private boolean fired;
+    private long fireTime;
 
     public Woolly() {
         joystickLeft = new Joystick(1);
@@ -172,7 +175,8 @@ public class Woolly extends IterativeRobot {
         rollerClose = new Solenoid(1, 4);
         rollerSolenoid = new DoubleSolenoid(rollerOpen, rollerClose);
 
-        lightSolenoid = new Solenoid(2, 8);
+        lightSolenoidA = new Solenoid(2, 7);
+        lightSolenoidB = new Solenoid(2, 8);
 
         stringEncoder = new StringEncoder(1);
         rotEncoder = new RotationalEncoder(2);
@@ -203,24 +207,170 @@ public class Woolly extends IterativeRobot {
     public void robotInit() {
         // Initiate the compressor for the pneumatic systems
         compressor.start();
+        lightSolenoidA.set(true);
+        lightSolenoidB.set(true);
     }
 
     private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
 
-    private boolean pressed = true, aRelease = false;
-
-    boolean released = true;
+    private final int[] toggle = new int[20];
+    private final boolean[] released = new boolean[20];
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
-
+        
         if (buttonMap.isTransmissionHigh()) {
             transmission.setHigh();
         } else {
             transmission.setLow();
+        }
+        
+        if (!octo.get()) {
+            if (toggle[7] % 2 == 0) {
+                toggle[7]++;
+            }
+            if (toggle[8] % 2 == 0) {
+                toggle[8]++;
+            }
+            if (toggle[9] % 2 == 0) {
+                toggle[9]++;
+            }
+            if (toggle[10] % 2 == 0) {
+                toggle[10]++;
+            }
+            grabLargeSolenoid.set(false);
+            grabSmallSolenoid.set(false);
+            roller.closeArm();
+        }
+
+        if (joystickController.getRawAxis(6) == -1) {
+            screwMotor.set(.5);
+        } else if (joystickController.getRawAxis(6) == 1) {
+            screwMotor.set(-.5);
+        } else {
+            screwMotor.set(0);
+        }
+
+        if (joystickController.getRawAxis(5) == -1) {
+            screwDrive.set(ScrewDrive.HIGH_5);
+        } else if (joystickController.getRawAxis(5) == 1) {
+            screwDrive.set(ScrewDrive.HIGH_9);
+        }
+
+        if (joystickController.getRawButton(4)) {
+            boom.set(Boom.HIGH_9);
+        } else if (joystickController.getRawButton(2)) {
+            boom.set(Boom.HIGH_5);
+        } else if (joystickController.getRawButton(3)) {
+            boom.set(Boom.GATHERING);
+        } else if (joystickController.getRawButton(1)) {
+            // fourth slot, TBD; against low->high?
+        }
+
+        if (joystickController.getRawButton(8)) {
+            if (released[8]) {
+                if (toggle[8]++ % 2 == 0) {
+                    grabLargeSolenoid.set(true);
+                } else {
+                    grabLargeSolenoid.set(false);
+                }
+                released[8] = false;
+            }
+        } else {
+            released[8] = true;
+        }
+
+        if (joystickController.getRawButton(7)) {
+            if (released[7]) {
+                if (toggle[7]++ % 2 == 0) {
+                    grabSmallSolenoid.set(true);
+                } else {
+                    grabSmallSolenoid.set(false);
+                }
+                released[7] = false;
+            }
+        } else {
+            released[7] = true;
+        }
+
+        if (joystickController.getRawButton(5)) {
+            if (released[5]) {
+                if (toggle[5]++ % 2 == 0) {
+                    roller.openArm();
+                } else {
+                    roller.closeArm();
+                }
+                released[5] = false;
+            }
+        } else {
+            released[5] = true;
+        }
+
+        if (joystickController.getRawButton(10)) {
+            if (released[10]) {
+                if (toggle[10]++ % 2 == 0) {
+                    if (toggle[9] % 2 != 0) {
+                        toggle[9]++;
+                    }
+                    roller.forward();
+                } else {
+                    roller.stop();
+                }
+                released[10] = false;
+            }
+        } else {
+            released[10] = true;
+        }
+
+        if (joystickController.getRawButton(9)) {
+            if (released[9]) {
+                if (toggle[9]++ % 2 == 0) {
+                    if (toggle[10] % 2 != 0) {
+                        toggle[10]++;
+                    }
+                    roller.reverse();
+                } else {
+                    roller.stop();
+                }
+                released[9] = false;
+            }
+        } else {
+            released[9] = true;
+        }
+
+        if (joystickController.getRawButton(6)) {
+            if (released[6]) {
+                released[6] = false;
+                fired = true;
+                fireTime = System.currentTimeMillis();
+            }
+        } else {
+            released[6] = true;
+        }
+
+        if (fired) {
+            grabSmallSolenoid.set(true);
+            roller.openArm();
+            if (System.currentTimeMillis() - fireTime > 500) {
+                roller.closeArm();
+                grabSmallSolenoid.set(false);
+            } else if (System.currentTimeMillis() - fireTime > 350) {
+                shooter.fire();
+            }
+        }
+
+        update();
+        if (true) {
+            return;
+        }
+        for (int i = 0; i < 15; ++i) {
+            double d = joystickController.getRawAxis(i);
+            if (d > .1 || d < -.1) {
+                System.out.println(i + ": " + d);
+            }
         }
 
         if (joystickController.getRawButton(4)) { // high 5
@@ -235,17 +385,16 @@ public class Woolly extends IterativeRobot {
             mode = 4;
         }
 
-        if (joystickController.getRawButton(8)) { // catch
-            if ((mode == 5 || mode == 10) && released) {
-                mode = 10;
-            } else {
-                mode = 5;
-                released = false;
-            }
-        } else {
-            released = true;
-        }
-
+        /*if (joystickController.getRawButton(8)) { // catch
+         if ((mode == 5 || mode == 10) && released) {
+         mode = 10;
+         } else {
+         mode = 5;
+         released = false;
+         }
+         } else {
+         released = true;
+         }*/
         if (joystickController.getRawButton(7)) {
             roller.reverse();
         }
@@ -342,6 +491,7 @@ public class Woolly extends IterativeRobot {
      * This function is called periodically during autonomous.
      */
     public void autonomousPeriodic() {
-        // TODO: Autonomous
+        NetworkTable server = NetworkTable.getTable("SmartDashboard");
+        System.out.println(server.getNumber("HOT_CONFIDENCE", 0.0));
     }
 }

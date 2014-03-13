@@ -27,7 +27,7 @@ public class Boom implements Updatable {
 
     private final Talon motor;
     private final RotationalEncoder rot;
-    private Location dest;
+    private Location dest = START;
 
     public Boom(Talon motor, RotationalEncoder rot) {
         this.motor = motor;
@@ -56,7 +56,7 @@ public class Boom implements Updatable {
                 motor.set(-1 * SPEED * scale);
             }
         } else {
-            if (rot.getAverageVoltage() > 1.8 && rot.getAverageVoltage() < 3.7) {
+            if (rot.getAverageVoltage() > 2 && rot.getAverageVoltage() < 3.7) {
                 motor.set(-.05);
             } else {
                 motor.set(0);
