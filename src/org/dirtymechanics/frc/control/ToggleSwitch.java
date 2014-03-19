@@ -4,19 +4,18 @@ package org.dirtymechanics.frc.control;
  *
  * @author Daniel Ruess
  */
-public abstract class ToggleSwitch {
+public class ToggleSwitch {
 
     private boolean released = true;
     private int toggle = 0;
-    private boolean disabled;
 
     public final void update(boolean val) {
         if (val) {
-            if (released && !disabled) {
+            if (released) {
                 if (toggle++ % 2 == 0) {
-                    putOn();
+                    setOn();
                 } else {
-                    putOff();
+                    setOff();
                 }
                 released = false;
             }
@@ -45,15 +44,7 @@ public abstract class ToggleSwitch {
         }
     }
 
-    public void disable() {
-        disabled = true;
+    public boolean getState() {
+        return toggle % 2 == 0;
     }
-
-    public void enable() {
-        disabled = false;
-    }
-
-    protected abstract void putOn();
-
-    protected abstract void putOff();
 }

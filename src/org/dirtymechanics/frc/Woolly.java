@@ -42,23 +42,32 @@ public class Woolly extends IterativeRobot {
      */
     private final Joystick driverRightJoy;
     /**
-     * The physical controller.
+     * The operator's controller.
      */
     private final Joystick operatorController;
+    /**
+     * The operator's joystick.
+     */
     private final Joystick operatorJoy;
     /**
      * The compressor's controller.
      */
     private final Compressor compressor;
     /**
-     * Jaguar that's driving the left two motors.
+     * Jaguar that's driving the first left motor.
      */
     private final Jaguar leftDriveMotorA;
+    /**
+     * Jaguar that's driving the second left motor.
+     */
     private final Jaguar leftDriveMotorB;
     /**
-     * Jaguar that's driving the right two motors.
+     * Jaguar that's driving the first right motor.
      */
     private final Jaguar rightDriveMotorA;
+    /**
+     * Jaguar that's driving the second right motor.
+     */
     private final Jaguar rightDriveMotorB;
     /**
      * Jaguar controlling the screw drive.
@@ -138,7 +147,6 @@ public class Woolly extends IterativeRobot {
     private final Solenoid signalLEDB;
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
-    private long catchTime;
     private boolean firing;
     private long fireTime;
     private long octoTime;
