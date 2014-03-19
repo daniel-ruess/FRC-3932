@@ -7,6 +7,9 @@ import edu.wpi.first.wpilibj.Joystick;
  * @author Daniel Ruess
  */
 public class ButtonMap {
+    private final int[] leftSpeeds = new int[15];
+    private final int[] rightSpeeds = new int[15];
+    
 
     private final Joystick left;
     private final Joystick right;

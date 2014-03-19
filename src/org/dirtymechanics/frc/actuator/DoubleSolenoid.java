@@ -86,6 +86,14 @@ public class DoubleSolenoid implements Updatable {
         set(!state);
     }
 
+    public void setOpen() {
+        set(true);
+    }
+
+    public void setClosed() {
+        set(false);
+    }
+
     /**
      * Called per cycle to update the state of the valves.
      */
