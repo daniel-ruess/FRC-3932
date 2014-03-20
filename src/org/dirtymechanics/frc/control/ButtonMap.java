@@ -7,6 +7,9 @@ import edu.wpi.first.wpilibj.Joystick;
  * @author Daniel Ruess
  */
 public class ButtonMap {
+    private final int[] leftSpeeds = new int[15];
+    private final int[] rightSpeeds = new int[15];
+    
 
     private final Joystick left;
     private final Joystick right;
@@ -27,21 +30,16 @@ public class ButtonMap {
     public double getDriveLeft() {
         double spd = left.getY();
         double scale = 1;
-        if (spd < 0) {
-            scale *= -1;
+        if (left.getRawButton(1)) {
+            spd = right.getY();
         }
-        spd *= spd;
-        return left.getY(); //spd * scale;
+        return spd * scale;
     }
 
     public double getDriveRight() {
         double spd = right.getY();
-        double scale = 1;
-        if (spd < 0) {
-            scale *= -1;
-        }
-        spd *= spd;
-        return right.getY();//spd * scale;
+        double scale = -1;
+        return spd * scale;
     }
 
     public boolean isTransmissionHigh() {

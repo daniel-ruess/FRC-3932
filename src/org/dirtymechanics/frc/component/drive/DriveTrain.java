@@ -33,8 +33,8 @@ public class DriveTrain {
      * @param speed The speed.
      */
     public void setLeftSpeed(double speed) {
-        driveRightA.set(speed);
-        driveRightB.set(-1 * speed);
+        driveLeftA.set(speed);
+        driveLeftB.set(speed);
     }
 
     /**
@@ -43,8 +43,8 @@ public class DriveTrain {
      * @param speed The speed.
      */
     public void setRightSpeed(double speed) {
-        driveLeftA.set(speed);
-        driveLeftB.set(-1 * speed);
+        driveRightA.set(speed);
+        driveRightB.set(speed);
     }
 
     /**

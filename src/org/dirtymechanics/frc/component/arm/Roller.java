@@ -1,6 +1,6 @@
 package org.dirtymechanics.frc.component.arm;
 
-import edu.wpi.first.wpilibj.Jaguar;
+import edu.wpi.first.wpilibj.Relay;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 
 /**
@@ -9,26 +9,25 @@ import org.dirtymechanics.frc.actuator.DoubleSolenoid;
  */
 public class Roller {
 
-    private final Jaguar motor;
+    private final Relay motor;
     private final DoubleSolenoid solenoid;
 
-    public Roller(Jaguar motor, DoubleSolenoid solenoid) {
+    public Roller(Relay motor, DoubleSolenoid solenoid) {
         this.motor = motor;
         this.solenoid = solenoid;
     }
 
     public void forward() {
-        motor.set(1);
+        motor.set(Relay.Value.kForward);
     }
 
     public void stop() {
-        motor.set(0);
+        motor.set(Relay.Value.kOff);
 
     }
 
     public void reverse() {
-
-        motor.set(-1);
+        motor.set(Relay.Value.kReverse);
     }
 
     public void openArm() {

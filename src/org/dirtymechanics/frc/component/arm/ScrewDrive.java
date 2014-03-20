@@ -11,42 +11,85 @@ import org.dirtymechanics.frc.util.Updatable;
  */
 public class ScrewDrive implements Updatable {
 
+    public static final Location TRUSS_SHOT = new Location(3);
+    public static final Location PASS = new Location(1.7);
+    public static final Location HIGH_9 = new Location(2.25);
+    public static final Location AUTO = new Location(2.55);
+    public static final Location RESET = new Location(.595);
+
+    /**
+     * Represents a location to move the screw drive to.
+     */
+    public static class Location {
+
+        private final double loc;
+
+        private Location(double loc) {
+            this.loc = loc;
+        }
+    }
     /**
      * The default speed to run at.
      */
-    private static final int SPEED = 1; //TODO: calculate this.
+    private static final double SPEED = 1D; //TODO: calculate this.
 
     private final Jaguar motor;
     private final StringEncoder string;
-    private int destination;
+    private double dest;
 
     public ScrewDrive(Jaguar motor, StringEncoder string) {
         this.motor = motor;
         this.string = string;
+        set(TRUSS_SHOT);
     }
 
     /**
-     * 
-     * @param destination 
+     *
+     * @param destination
      */
-    public void setDestination(int destination) {
-        this.destination = destination;
+    public final void set(Location destination) {
+        // if (resetting) {
+        //    nextDestination = destination;
+        //} else {
+        this.dest = destination.loc;
+        //}
     }
-    
+
+    public void increaseOffset() {
+        dest += .1;
+    }
+
+    public void decreaseOffset() {
+        dest -= .1;
+    }
+
     public int getPosition() {
         return string.getDistance();
     }
 
     public void update() {
-        int distance = string.getDistance();
-        if (destination > distance) {
-            motor.set(SPEED);
-        } else if (distance > destination) {
-            if (distance - destination <= 4) {
-                double scale = (distance - destination) / 4;
-                motor.set(-1 * SPEED * scale);
+        double loc = string.getAverageVoltage();
+        double dif = Math.abs(dest - loc);
+        double error = .01;
+
+        if (dif > error) {
+            if (dest < loc) {
+                if (dif < .3) {
+                    motor.set(.5);
+                } else {
+                    motor.set(SPEED);
+                }
             } else {
-                motor.set(-1 * SPEED);
+                if (dif < .3) {
+                    motor.set(-.5);
+                } else {
+                    motor.set(-1 * SPEED);
+                }
+            }
+        } else {
+            motor.set(0);
+            if (dest == RESET.loc) {
+                set(TRUSS_SHOT);
             }
         }
     }
