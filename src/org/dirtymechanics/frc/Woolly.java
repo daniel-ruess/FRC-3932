@@ -32,7 +32,6 @@ import org.dirtymechanics.frc.util.Updatable;
  * directory.
  */
 public class Woolly extends IterativeRobot {
-
     /**
      * The physical left joystick.
      */
@@ -150,7 +149,17 @@ public class Woolly extends IterativeRobot {
     private boolean firing;
     private long fireTime;
     private long octoTime;
-    private boolean octoSwitchOpen;  //TODO rename octoSwitchOpen
+    private boolean octoSwitchOpen; 
+    NetworkTable server = NetworkTable.getTable("SmartDashboard");
+    double imageMatchConfidence = 0.0;
+    private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
+
+    private final int[] toggle = new int[30];
+    private final boolean[] released = new boolean[30];
+
+    int counter = 0;
+    private long autoStart;
+    
 
     public Woolly() {
         driverLeftJoy = new Joystick(1);
@@ -227,116 +236,143 @@ public class Woolly extends IterativeRobot {
         compressor.start();
     }
 
-    private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
 
-    private final int[] toggle = new int[30];
-    private final boolean[] released = new boolean[30];
+    public void autonomousInit() {
+        autoStart = System.currentTimeMillis();
+        cameraLEDA.set(true);
+        cameraLEDB.set(true);
+    }
+    
+    /**
+     * This function is called periodically during autonomous.
+     */
+    public void autonomousPeriodic() {
+        driveForwardUntil3rdSecondOfAutonomous();
+        //autonomousExperimintalShooter(time);
+        //autonomousExperimentalHotGoalShot();
+    }
 
-    int counter = 0;
+    void driveForwardUntil3rdSecondOfAutonomous() {
+        long time = System.currentTimeMillis() - autoStart;
+        if (time < 3000) {
+            driveTrain.setSpeed(-.73, .75);
+        } else {
+            driveTrain.setSpeed(0, 0);
+        }
+        
+    }
+
+    //Experimental, not currently called.
+    void autonomousExperimentalHotGoalShot() {
+        //HOT_CONFIDENCE = server.getNumber("HOT_Confidence", 0.0);
+        // Algorithm one: One ball, hot vision
+        /*
+        if (HOT_CONFIDENCE > 75.0) {
+        //shoot
+        }
+        else {
+        //wait a few seconds
+        }
+        */
+        //Algorithm two
+        long dif = System.currentTimeMillis() - autoStart;
+        if (dif > 0 && dif < 2000) {
+            driveTrain.setSpeed(-1, 1);
+        } else {
+            //if (dif > 2000 && dif < 2300) {
+            driveTrain.setSpeed(0, 0);
+        }/*
+        if (dif > 2300) {
+        roller.openArm();
+        }
+        if (dif > 2500) {
+        shooter.fire();
+        }
+        update();*/
+    }
+    
+    //TODO extract class PeriodicAutonomousShooter, this method would be "update"
+    //  members would be appropriate controls passed in constructor.
+    //Experimental, not currently called.
+    void autonomousExperimintalShooter(long time) {
+        if (time < 750) {
+            boom.set(Boom.AUTO);
+            screwDrive.set(ScrewDrive.AUTO);
+            roller.forward();
+        } else if (octo.get() && time < 1000) {
+            roller.forward();
+        } else {
+            roller.stop();
+        }
+
+        if (time < 3500) {
+            driveTrain.setSpeed(-.73, .75);
+        } else if (time > 3700) {
+            grabLargeSolenoid.set(false);
+            grabSmallSolenoid.set(false);
+            roller.openArm();
+            roller.stop();
+            if (time > 4200) {
+                resetFireControls();
+            } else if (time > 4050) {
+                shooter.fire();
+            }
+        } else {
+
+            driveTrain.setSpeed(0, 0);
+        }
+        update();
+
+        //System.out.println(server.getNumber("HOT_CONFIDENCE", 0.0));
+        System.out.println(ultrasonicSensor.getAverageVoltage());
+        imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+        if (System.currentTimeMillis() - autoStart < 3000) {
+            driveTrain.setSpeed(-.43, .5);
+        } else {
+            driveTrain.setSpeed(0, 0);
+            if (imageMatchConfidence > 50 || time > 6000) {
+                roller.openArm();
+                if (!firing) {
+                    firing = true;
+                    fireTime = System.currentTimeMillis();
+                }
+                if (time > 6300 || System.currentTimeMillis() - fireTime > 300) {
+                    shooter.fire();
+                    firing = false;
+                }
+            }
+        }
+        transmissionSolenoid.set(false);
+        screwDrive.set(ScrewDrive.PASS);
+
+        update();
+    }
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
         if (counter++ % 20 == 0) {
-            System.out.println("ROT: " + rotEncoder.getAverageVoltage());
-            System.out.println("LIN: " + stringEncoder.getAverageVoltage());
-            System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage());
-            System.out.println("OCT: " + octo.get());
-
-            cameraLEDA.set(false);
-            cameraLEDB.set(false);
+            debugSensors();
+            turnOffLEDs();
         }
 
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
-
-        if (buttonMap.isTransmissionHigh()) {
-            transmission.setHigh();
-        } else {
-            transmission.setLow();
-        }
-
-        if (!octo.get()) {
-            if (!octoSwitchOpen) {
-                octoSwitchOpen = true;
-                octoTime = System.currentTimeMillis();
-            }
-        }
-
-        if (octoSwitchOpen) {
-            if (System.currentTimeMillis() - octoTime > 200) {
-                if (System.currentTimeMillis() - octoTime > 500) {
-                    roller.closeArm();
-                    octoSwitchOpen = false;
-                }
-                grabLargeSolenoid.set(false);
-                grabSmallSolenoid.set(false);
-                roller.stop();
-                disableToggles();
-            }
-        }
+        setTransmission(buttonMap.isTransmissionHigh());
+        updateOcto();
 
         if (firing) {
-            disableToggles();
-            grabLargeSolenoid.set(false);
-            grabSmallSolenoid.set(false);
-            roller.openArm();
-            roller.stop();
-            if (System.currentTimeMillis() - fireTime > 500) {
-                grabLargeSolenoid.set(false);
-                grabSmallSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                firing = false;
+            prepareToFire();
+            if (firingCompleted()) {
+                resetFireControls();
             } else if (System.currentTimeMillis() - fireTime > 350) {
                 shooter.fire();
             }
         }
+        updateScrewDrive();
+        updateBoom();
 
-        if (operatorController.getRawAxis(5) < -.5) {
-            screwDrive.set(ScrewDrive.RESET);
-        } else if (operatorController.getRawAxis(6) > .5) {
-            screwDrive.set(ScrewDrive.PASS);
-        } else if (operatorController.getRawAxis(6) < -.5) {
-            screwDrive.set(ScrewDrive.TRUSS_SHOT);
-        }
-
-        if (operatorJoy.getRawAxis(6) < -.5) {
-            if (released[20]) {
-                screwDrive.increaseOffset();
-                released[20] = false;
-            }
-            released[20] = false;
-        } else if (operatorJoy.getRawAxis(6) > .5) {
-            if (released[20]) {
-                screwDrive.decreaseOffset();
-                released[20] = false;
-            }
-        } else {
-            released[20] = true;
-        }
-
-        if (operatorJoy.getRawButton(6)) {
-            if (released[21]) {
-                boom.increaseOffset();
-                released[21] = false;
-            }
-        } else if (operatorJoy.getRawButton(4)) {
-            if (released[21]) {
-                boom.decreaseOffset();
-                released[21] = false;
-            }
-        } else {
-            released[21] = true;
-        }
-
-        if (operatorController.getRawButton(4)) {
-            boom.set(Boom.TRUSS_SHOT);
-        } else if (operatorController.getRawButton(2)) {
-            boom.set(Boom.PASS);
-        }
-
-        if (!octoSwitchOpen && !firing) {
+        if (holdingTheBallAndNotFiring()) {
             if (operatorController.getRawButton(8)) {
                 if (released[8]) {
                     if (toggle[8]++ % 2 == 0) {
@@ -396,19 +432,136 @@ public class Woolly extends IterativeRobot {
             }
 
             if (operatorController.getRawButton(6)) {
-                if (released[6]) {
-                    if (operatorController.getRawButton(11) || !octo.get()) {
-                        released[6] = false;
-                        firing = true;
-                        fireTime = System.currentTimeMillis();
-                    }
-                }
+                startFiringSequence();
             } else {
                 released[6] = true;
             }
         }
 
         update();
+    }
+
+    void startFiringSequence() {
+        if (released[6]) {
+            if (operatorController.getRawButton(11) || !octo.get()) {
+                released[6] = false;
+                firing = true;
+                fireTime = System.currentTimeMillis();
+            }
+        }
+    }
+
+    boolean holdingTheBallAndNotFiring() {
+        return !octoSwitchOpen && !firing;
+    }
+
+    void updateBoom() {
+        if (operatorJoy.getRawButton(6)) {
+            if (released[21]) {
+                boom.increaseOffset();
+                released[21] = false;
+            }
+        } else if (operatorJoy.getRawButton(4)) {
+            if (released[21]) {
+                boom.decreaseOffset();
+                released[21] = false;
+            }
+        } else {
+            released[21] = true;
+        }
+        
+        if (operatorController.getRawButton(4)) {
+            boom.set(Boom.TRUSS_SHOT);
+        } else if (operatorController.getRawButton(2)) {
+            boom.set(Boom.PASS);
+        }
+    }
+
+    void updateScrewDrive() {
+        if (operatorController.getRawAxis(5) < -.5) {
+            screwDrive.set(ScrewDrive.RESET);
+        } else if (operatorController.getRawAxis(6) > .5) {
+            screwDrive.set(ScrewDrive.PASS);
+        } else if (operatorController.getRawAxis(6) < -.5) {
+            screwDrive.set(ScrewDrive.TRUSS_SHOT);
+        }
+        
+        if (operatorJoy.getRawAxis(6) < -.5) {
+            if (released[20]) {
+                screwDrive.increaseOffset();
+                released[20] = false;
+            }
+            released[20] = false;
+        } else if (operatorJoy.getRawAxis(6) > .5) {
+            if (released[20]) {
+                screwDrive.decreaseOffset();
+                released[20] = false;
+            }
+        } else {
+            released[20] = true;
+        }
+    }
+
+    void prepareToFire() {
+        disableToggles();
+        grabLargeSolenoid.set(false);
+        grabSmallSolenoid.set(false);
+        roller.openArm();
+        roller.stop();
+    }
+
+    void resetFireControls() {
+        grabLargeSolenoid.set(false);
+        grabSmallSolenoid.set(false);
+        roller.closeArm();
+        roller.stop();
+        firing = false;
+    }
+
+    boolean firingCompleted() {
+        return System.currentTimeMillis() - fireTime > 500;
+    }
+
+    void updateOcto() {
+        if (!octo.get()) {
+            if (!octoSwitchOpen) {
+                octoSwitchOpen = true;
+                octoTime = System.currentTimeMillis();
+            }
+        }
+        
+        if (octoSwitchOpen) {
+            if (System.currentTimeMillis() - octoTime > 200) {
+                if (System.currentTimeMillis() - octoTime > 500) {
+                    roller.closeArm();
+                    octoSwitchOpen = false;
+                }
+                grabLargeSolenoid.set(false);
+                grabSmallSolenoid.set(false);
+                roller.stop();
+                disableToggles();
+            }
+        }
+    }
+
+    void setTransmission(boolean transmissionHigh) {
+        if (transmissionHigh) {
+            transmission.setHigh();
+        } else {
+            transmission.setLow();
+        }
+    }
+
+    void turnOffLEDs() {
+        cameraLEDA.set(false);
+        cameraLEDB.set(false);
+    }
+
+    void debugSensors() {
+        System.out.println("ROT: " + rotEncoder.getAverageVoltage());
+        System.out.println("LIN: " + stringEncoder.getAverageVoltage());
+        System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage());
+        System.out.println("OCT: " + octo.get());
     }
 
     private void disableToggles() {
@@ -451,116 +604,11 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(true);
     }
 
-    private long autoStart;
+    
 
-    public void autonomousInit() {
-        autoStart = System.currentTimeMillis();
-        cameraLEDA.set(true);
-        cameraLEDB.set(true);
-    }
 
-    NetworkTable server = NetworkTable.getTable("SmartDashboard");
-    double conf = 0.0;
 
-    /**
-     * This function is called periodically during autonomous.
-     */
-    public void autonomousPeriodic() {
-        long time = System.currentTimeMillis() - autoStart;
+    
 
-        if (time < 3000) {
-            driveTrain.setSpeed(-.73, .75);
-        } else {
-            driveTrain.setSpeed(0, 0);
-        }
-        if (true) {
-            return;
-        }
-        if (time < 750) {
-            boom.set(Boom.AUTO);
-            screwDrive.set(ScrewDrive.AUTO);
-            roller.forward();
-        } else if (octo.get() && time < 1000) {
-            roller.forward();
-        } else {
-            roller.stop();
-        }
-
-        if (time < 3500) {
-            driveTrain.setSpeed(-.73, .75);
-        } else if (time > 3700) {
-            grabLargeSolenoid.set(false);
-            grabSmallSolenoid.set(false);
-            roller.openArm();
-            roller.stop();
-            if (time > 4200) {
-                grabLargeSolenoid.set(false);
-                grabSmallSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                firing = false;
-            } else if (time > 4050) {
-                shooter.fire();
-            }
-        } else {
-
-            driveTrain.setSpeed(0, 0);
-        }
-        update();
-
-        //System.out.println(server.getNumber("HOT_CONFIDENCE", 0.0));
-        System.out.println(ultrasonicSensor.getAverageVoltage());
-        conf = server.getNumber("HOT_CONFIDENCE", 0.0);
-        if (System.currentTimeMillis() - autoStart < 3000) {
-            driveTrain.setSpeed(-.43, .5);
-        } else {
-            driveTrain.setSpeed(0, 0);
-            if (conf > 50 || time > 6000) {
-                roller.openArm();
-                if (!firing) {
-                    firing = true;
-                    fireTime = System.currentTimeMillis();
-                }
-                if (time > 6300 || System.currentTimeMillis() - fireTime > 300) {
-                    shooter.fire();
-                    firing = false;
-                }
-            }
-        }
-        transmissionSolenoid.set(false);
-        screwDrive.set(ScrewDrive.PASS);
-
-        update();
-
-        if (true) {
-            return;
-        }
-
-        //HOT_CONFIDENCE = server.getNumber("HOT_Confidence", 0.0);
-        // Algorithm one: One ball, hot vision
-        /*
-         if (HOT_CONFIDENCE > 75.0) {
-         //shoot
-         }
-         else {
-         //wait a few seconds
-         }
-         */
-        //Algorithm two
-        long dif = System.currentTimeMillis() - autoStart;
-        if (dif > 0 && dif < 2000) {
-            driveTrain.setSpeed(-1, 1);
-        } else {
-            //if (dif > 2000 && dif < 2300) {
-            driveTrain.setSpeed(0, 0);
-        }/*
-         if (dif > 2300) {
-         roller.openArm();
-         }
-         if (dif > 2500) {
-         shooter.fire();
-         }
-         update();*/
-
-    }
+    
 }
