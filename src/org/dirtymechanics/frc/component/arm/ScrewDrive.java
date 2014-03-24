@@ -81,7 +81,7 @@ public class ScrewDrive implements Updatable {
                 }
             } else {
                 if (dif < .2) {
-                    motor.set(-.2);
+                    motor.set(0);
                 } else {
                     motor.set(-1 * SPEED);
                 }
