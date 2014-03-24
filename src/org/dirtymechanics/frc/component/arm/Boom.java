@@ -10,14 +10,16 @@ import org.dirtymechanics.frc.util.Updatable;
  */
 public class Boom implements Updatable {
 
-    public static final Location MAX = new Location(1.43);
-    public static final Location TRUSS_SHOT = new Location(2.25);
-    public static final Location PASS = new Location(2.6);
-    public static final Location HIGH_9 = new Location(2.1);
+    public static final Location MAX = new Location(3.67);
+    public static final Location GROUND = new Location(1.0);
+
+    public static final Location TRUSS_SHOT = new Location(3.4);
+    public static final Location PASS = new Location(2.0);
+    public static final Location HIGH_9 = new Location(2.9);
     public static final Location AUTO = new Location(2.35);
-    public static final Location GATHERING = new Location(4.25);
+
     private static final double SPEED = .7D;
-    private static final double ERROR = .01D;
+    private static final double ERROR = .1;
 
     public static class Location {
 
@@ -38,7 +40,7 @@ public class Boom implements Updatable {
         set(PASS);
     }
 
-    public void set(Location dest) {
+    public final void set(Location dest) {
         this.dest = dest.loc;
     }
 
@@ -52,10 +54,10 @@ public class Boom implements Updatable {
 
     public void update() {
         double dif = Math.abs(dest - rot.getAverageVoltage());
-        if (dest < MAX.loc) {
+        if (dest > MAX.loc) {
             dest = MAX.loc;
-        } else if (dest > GATHERING.loc) {
-            dest = GATHERING.loc;
+        } else if (dest < GROUND.loc) {
+            dest = GROUND.loc;
         }
         if (dif > ERROR) {
             double scale = 1;
@@ -63,13 +65,13 @@ public class Boom implements Updatable {
                 scale = 2 * dif;
             }
             if (dest > rot.getAverageVoltage()) {
-                motor.set(SPEED * scale);
-            } else {
                 motor.set(-SPEED * scale);
+            } else {
+                motor.set(SPEED * scale);
             }
         } else {
-            if (rot.getAverageVoltage() > 2 && rot.getAverageVoltage() < 3.7) {
-                motor.set(-.05);
+            if (rot.getAverageVoltage() > 1.6 && rot.getAverageVoltage() < 3.2) {
+                motor.set(.05);
             } else {
                 motor.set(0);
             }

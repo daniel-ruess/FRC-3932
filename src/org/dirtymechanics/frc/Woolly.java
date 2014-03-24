@@ -32,6 +32,7 @@ import org.dirtymechanics.frc.util.Updatable;
  * directory.
  */
 public class Woolly extends IterativeRobot {
+
     /**
      * The physical left joystick.
      */
@@ -149,7 +150,7 @@ public class Woolly extends IterativeRobot {
     private boolean firing;
     private long fireTime;
     private long octoTime;
-    private boolean octoSwitchOpen; 
+    private boolean octoSwitchOpen;
     NetworkTable server = NetworkTable.getTable("SmartDashboard");
     double imageMatchConfidence = 0.0;
     private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
@@ -159,7 +160,6 @@ public class Woolly extends IterativeRobot {
 
     int counter = 0;
     private long autoStart;
-    
 
     public Woolly() {
         driverLeftJoy = new Joystick(1);
@@ -236,19 +236,18 @@ public class Woolly extends IterativeRobot {
         compressor.start();
     }
 
-
     public void autonomousInit() {
         autoStart = System.currentTimeMillis();
         cameraLEDA.set(true);
         cameraLEDB.set(true);
     }
-    
+
     /**
      * This function is called periodically during autonomous.
      */
     public void autonomousPeriodic() {
         driveForwardUntil3rdSecondOfAutonomous();
-        //autonomousExperimintalShooter(time);
+        autonomousExperimintalShooter();
         //autonomousExperimentalHotGoalShot();
     }
 
@@ -259,7 +258,7 @@ public class Woolly extends IterativeRobot {
         } else {
             driveTrain.setSpeed(0, 0);
         }
-        
+
     }
 
     //Experimental, not currently called.
@@ -267,13 +266,13 @@ public class Woolly extends IterativeRobot {
         //HOT_CONFIDENCE = server.getNumber("HOT_Confidence", 0.0);
         // Algorithm one: One ball, hot vision
         /*
-        if (HOT_CONFIDENCE > 75.0) {
-        //shoot
-        }
-        else {
-        //wait a few seconds
-        }
-        */
+         if (HOT_CONFIDENCE > 75.0) {
+         //shoot
+         }
+         else {
+         //wait a few seconds
+         }
+         */
         //Algorithm two
         long dif = System.currentTimeMillis() - autoStart;
         if (dif > 0 && dif < 2000) {
@@ -282,77 +281,84 @@ public class Woolly extends IterativeRobot {
             //if (dif > 2000 && dif < 2300) {
             driveTrain.setSpeed(0, 0);
         }/*
-        if (dif > 2300) {
-        roller.openArm();
-        }
-        if (dif > 2500) {
-        shooter.fire();
-        }
-        update();*/
+         if (dif > 2300) {
+         roller.openArm();
+         }
+         if (dif > 2500) {
+         shooter.fire();
+         }
+         update();*/
+
     }
-    
+
     //TODO extract class PeriodicAutonomousShooter, this method would be "update"
     //  members would be appropriate controls passed in constructor.
     //Experimental, not currently called.
-    void autonomousExperimintalShooter(long time) {
-        if (time < 750) {
-            boom.set(Boom.AUTO);
-            screwDrive.set(ScrewDrive.AUTO);
-            roller.forward();
-        } else if (octo.get() && time < 1000) {
-            roller.forward();
-        } else {
-            roller.stop();
-        }
+    void autonomousExperimintalShooter() {
+        /*if (time < 750) {
+         boom.set(Boom.AUTO);
+         screwDrive.set(ScrewDrive.AUTO);
+         roller.forward();
+         } else if (octo.get() && time < 1000) {
+         roller.forward();
+         } else {
+         roller.stop();
+         }
 
-        if (time < 3500) {
-            driveTrain.setSpeed(-.73, .75);
-        } else if (time > 3700) {
-            grabLargeSolenoid.set(false);
-            grabSmallSolenoid.set(false);
-            roller.openArm();
-            roller.stop();
-            if (time > 4200) {
-                resetFireControls();
-            } else if (time > 4050) {
-                shooter.fire();
-            }
-        } else {
+         if (time < 3500) {
+         driveTrain.setSpeed(-.73, .75);
+         } else if (time > 3700) {
+         grabLargeSolenoid.set(false);
+         grabSmallSolenoid.set(false);
+         roller.openArm();
+         roller.stop();
+         if (time > 4200) {
+         resetFireControls();
+         } else if (time > 4050) {
+         shooter.fire();
+         }
+         } else {
 
-            driveTrain.setSpeed(0, 0);
-        }
-        update();
+         driveTrain.setSpeed(0, 0);
+         }
+         update();*/
 
-        //System.out.println(server.getNumber("HOT_CONFIDENCE", 0.0));
+        long time = System.currentTimeMillis() - autoStart;
+
         System.out.println(ultrasonicSensor.getAverageVoltage());
         imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
-        if (System.currentTimeMillis() - autoStart < 3000) {
-            driveTrain.setSpeed(-.43, .5);
+        if (time < 3000) {
+            firing = false;
+            transmissionSolenoid.set(false);
+            screwDrive.set(ScrewDrive.TRUSS_SHOT);
+            boom.set(Boom.TRUSS_SHOT);
+            driveTrain.setSpeed(.43, .5);
         } else {
             driveTrain.setSpeed(0, 0);
             if (imageMatchConfidence > 50 || time > 6000) {
-                roller.openArm();
                 if (!firing) {
+                    roller.openArm();
                     firing = true;
                     fireTime = System.currentTimeMillis();
                 }
                 if (time > 6300 || System.currentTimeMillis() - fireTime > 300) {
-                    shooter.fire();
+                    //shooter.fire();
                     firing = false;
                 }
             }
         }
-        transmissionSolenoid.set(false);
-        screwDrive.set(ScrewDrive.PASS);
-
         update();
     }
+
+    long t = 0;
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
-        if (counter++ % 20 == 0) {
+        if (counter++ % 20 == 0) { //call per 20 cycles
+            System.out.println(System.currentTimeMillis() - t);
+            t = System.currentTimeMillis();
             debugSensors();
             turnOffLEDs();
         }
@@ -362,17 +368,21 @@ public class Woolly extends IterativeRobot {
         updateOcto();
 
         if (firing) {
-            prepareToFire();
-            if (firingCompleted()) {
+            if (System.currentTimeMillis() - fireTime > 600) {
+                System.out.println("C");
                 resetFireControls();
             } else if (System.currentTimeMillis() - fireTime > 350) {
+                System.out.println("B");
                 shooter.fire();
+            } else {
+                System.out.println("A");
+                prepareToFire();
             }
         }
         updateScrewDrive();
         updateBoom();
 
-        if (holdingTheBallAndNotFiring()) {
+        if (!firing) {
             if (operatorController.getRawButton(8)) {
                 if (released[8]) {
                     if (toggle[8]++ % 2 == 0) {
@@ -456,24 +466,30 @@ public class Woolly extends IterativeRobot {
     }
 
     void updateBoom() {
+
         if (operatorJoy.getRawButton(6)) {
+            //boomMotor.set(.7);
             if (released[21]) {
                 boom.increaseOffset();
                 released[21] = false;
             }
         } else if (operatorJoy.getRawButton(4)) {
+            //boomMotor.set(-.7);
             if (released[21]) {
                 boom.decreaseOffset();
                 released[21] = false;
             }
         } else {
+            //boomMotor.set(0);
             released[21] = true;
         }
-        
+
         if (operatorController.getRawButton(4)) {
             boom.set(Boom.TRUSS_SHOT);
         } else if (operatorController.getRawButton(2)) {
             boom.set(Boom.PASS);
+        } else if (operatorController.getRawButton(3)) {
+            boom.set(Boom.GROUND);
         }
     }
 
@@ -485,7 +501,7 @@ public class Woolly extends IterativeRobot {
         } else if (operatorController.getRawAxis(6) < -.5) {
             screwDrive.set(ScrewDrive.TRUSS_SHOT);
         }
-        
+
         if (operatorJoy.getRawAxis(6) < -.5) {
             if (released[20]) {
                 screwDrive.increaseOffset();
@@ -529,7 +545,7 @@ public class Woolly extends IterativeRobot {
                 octoTime = System.currentTimeMillis();
             }
         }
-        
+
         if (octoSwitchOpen) {
             if (System.currentTimeMillis() - octoTime > 200) {
                 if (System.currentTimeMillis() - octoTime > 500) {
@@ -602,13 +618,7 @@ public class Woolly extends IterativeRobot {
     public void teleopInit() {
         cameraLEDA.set(true);
         cameraLEDB.set(true);
+        signalLEDA.set(true);
+        signalLEDB.set(true);
     }
-
-    
-
-
-
-    
-
-    
 }

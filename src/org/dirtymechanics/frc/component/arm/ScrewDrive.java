@@ -7,7 +7,7 @@ import org.dirtymechanics.frc.util.Updatable;
 /**
  * A controller for a screw drive.
  *
- * @author Daniel Ruess
+ * @author Daniel Ru
  */
 public class ScrewDrive implements Updatable {
 
@@ -15,7 +15,7 @@ public class ScrewDrive implements Updatable {
     public static final Location PASS = new Location(1.7);
     public static final Location HIGH_9 = new Location(2.25);
     public static final Location AUTO = new Location(2.55);
-    public static final Location RESET = new Location(.595);
+    public static final Location RESET = new Location(.7); //595
 
     /**
      * Represents a location to move the screw drive to.
@@ -74,14 +74,14 @@ public class ScrewDrive implements Updatable {
 
         if (dif > error) {
             if (dest < loc) {
-                if (dif < .3) {
-                    motor.set(.5);
+                if (dif < .2) {
+                    motor.set(.2);
                 } else {
                     motor.set(SPEED);
                 }
             } else {
-                if (dif < .3) {
-                    motor.set(-.5);
+                if (dif < .2) {
+                    motor.set(-.2);
                 } else {
                     motor.set(-1 * SPEED);
                 }

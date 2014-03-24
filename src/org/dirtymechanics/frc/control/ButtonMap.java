@@ -7,9 +7,9 @@ import edu.wpi.first.wpilibj.Joystick;
  * @author Daniel Ruess
  */
 public class ButtonMap {
-    private final int[] leftSpeeds = new int[15];
-    private final int[] rightSpeeds = new int[15];
-    
+
+    private double leftSpeed = 0;
+    private double rightSpeed = 0;
 
     private final Joystick left;
     private final Joystick right;
@@ -18,7 +18,7 @@ public class ButtonMap {
     private boolean transmissionState = false;
     private boolean transmissionLast = false;
     private int transmissionFlip = 0;
-    
+
     private int mode = 0;
 
     public ButtonMap(Joystick left, Joystick right, Joystick cont) {
@@ -29,17 +29,45 @@ public class ButtonMap {
 
     public double getDriveLeft() {
         double spd = left.getY();
-        double scale = 1;
+        double scale = -1;
         if (left.getRawButton(1)) {
             spd = right.getY();
         }
-        return spd * scale;
+        spd *= scale;
+        if (spd > 0) {
+            if (spd > leftSpeed) {
+                leftSpeed += .0625;
+            } else {
+                leftSpeed = spd;
+            }
+        } else {
+            if (spd < leftSpeed) {
+                leftSpeed -= .0625;
+            } else {
+                leftSpeed = spd;
+            }
+        }
+        return leftSpeed;
     }
 
     public double getDriveRight() {
         double spd = right.getY();
         double scale = -1;
-        return spd * scale;
+        spd *= scale;
+        if (spd > 0) {
+            if (spd > rightSpeed) {
+                rightSpeed += .0625;
+            } else {
+                rightSpeed = spd;
+            }
+        } else {
+            if (spd < rightSpeed) {
+                rightSpeed -= .0625;
+            } else {
+                rightSpeed = spd;
+            }
+        }
+        return rightSpeed;
     }
 
     public boolean isTransmissionHigh() {
@@ -53,16 +81,15 @@ public class ButtonMap {
         }
         return transmissionState;
     }
-    
+
     public boolean fire() {
         return cont.getRawButton(12);
     }
-    
+
     /**
-     * 0 = idle
-     * 1 = firing
-     * 2 = collecting
-     * @return 
+     * 0 = idle 1 = firing 2 = collecting
+     *
+     * @return
      */
     public int getMode() { //TODO: add ball sensor
         if (cont.getRawButton(2)) {

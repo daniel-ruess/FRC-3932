@@ -8,7 +8,7 @@ import edu.wpi.first.wpilibj.Jaguar;
  * @author Daniel Ruess
  */
 public class DriveTrain {
-
+    
     /**
      * The PWM controller handling the speed of the left motors.
      */
@@ -33,8 +33,8 @@ public class DriveTrain {
      * @param speed The speed.
      */
     public void setLeftSpeed(double speed) {
-        driveLeftA.set(speed);
-        driveLeftB.set(speed);
+        driveLeftA.set(-speed);
+        driveLeftB.set(-speed);
     }
 
     /**
