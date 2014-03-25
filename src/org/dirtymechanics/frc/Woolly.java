@@ -384,6 +384,7 @@ public class Woolly extends IterativeRobot {
         }
         updateScrewDrive();
         updateBoom();
+        updateRangeLEDs();
 
         if (!firing) {
             if (operatorController.getRawButton(8)) {
@@ -466,6 +467,14 @@ public class Woolly extends IterativeRobot {
 
     boolean holdingTheBallAndNotFiring() {
         return !octoSwitchOpen && !firing;
+    }
+    
+    void updateRangeLEDs() {
+        if (ultrasonicSensor.getRangeInInches() > 105 && ultrasonicSensor.getRangeInInches() < 111) {
+            rangeLeds(true);
+        } else {
+            rangeLeds(false);
+        }
     }
 
     void updateBoom() {
@@ -621,7 +630,12 @@ public class Woolly extends IterativeRobot {
     public void teleopInit() {
         cameraLEDA.set(true);
         cameraLEDB.set(true);
-        signalLEDA.set(true);
-        signalLEDB.set(true);
+        signalLEDA.set(false);
+        signalLEDB.set(false);
+    }
+
+    private void rangeLeds(boolean b) {
+        signalLEDA.set(b);
+        signalLEDB.set(b);
     }
 }
