@@ -40,8 +40,6 @@ public class Boom implements Updatable {
         this.rot = rot;
         if (BOOM_ENABLED) {
             set(PASS);
-        } else {
-            return;
         }
     }
 
