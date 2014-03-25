@@ -478,7 +478,7 @@ public class Woolly extends IterativeRobot {
     }
 
     void updateBoom() {
-        if (boom.BOOM_ENABLED) return; //early exit, don't do anything.
+        if (!boom.BOOM_ENABLED) return; //early exit, don't do anything.
         if (operatorJoy.getRawButton(6)) {
             //boomMotor.set(.7);
             if (released[21]) {
