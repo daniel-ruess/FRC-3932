@@ -20,6 +20,7 @@ public class Boom implements Updatable {
 
     private static final double SPEED = .7D;
     private static final double ERROR = .1;
+    public boolean BOOM_ENABLED = false;
 
     public static class Location {
 
@@ -37,7 +38,11 @@ public class Boom implements Updatable {
     public Boom(Talon motor, RotationalEncoder rot) {
         this.motor = motor;
         this.rot = rot;
-        set(PASS);
+        if (BOOM_ENABLED) {
+            set(PASS);
+        } else {
+            return;
+        }
     }
 
     public final void set(Location dest) {

@@ -19,6 +19,7 @@ import org.dirtymechanics.frc.component.arm.ScrewDrive;
 import org.dirtymechanics.frc.component.drive.DriveTrain;
 import org.dirtymechanics.frc.component.drive.Transmission;
 import org.dirtymechanics.frc.control.ButtonMap;
+import org.dirtymechanics.frc.sensor.MaxBotixMaxSonarEZ4;
 import org.dirtymechanics.frc.sensor.RotationalEncoder;
 import org.dirtymechanics.frc.sensor.StringEncoder;
 import org.dirtymechanics.frc.util.List;
@@ -113,7 +114,8 @@ public class Woolly extends IterativeRobot {
      * The rotational encoder used for the boom.
      */
     private final RotationalEncoder rotEncoder;
-    private final AnalogChannel ultrasonicSensor;
+    private final MaxBotixMaxSonarEZ4 ultrasonicSensor;
+    
 
     private final DigitalInput octo;
     /**
@@ -161,6 +163,7 @@ public class Woolly extends IterativeRobot {
     int counter = 0;
     private long autoStart;
 
+
     public Woolly() {
         driverLeftJoy = new Joystick(1);
         driverRightJoy = new Joystick(2);
@@ -206,7 +209,7 @@ public class Woolly extends IterativeRobot {
 
         stringEncoder = new StringEncoder(1);
         rotEncoder = new RotationalEncoder(2);
-        ultrasonicSensor = new AnalogChannel(3);
+        ultrasonicSensor = new MaxBotixMaxSonarEZ4(3);
         octo = new DigitalInput(2);
 
         driveTrain = new DriveTrain(leftDriveMotorA, leftDriveMotorB, rightDriveMotorA, rightDriveMotorB);
@@ -325,7 +328,7 @@ public class Woolly extends IterativeRobot {
 
         long time = System.currentTimeMillis() - autoStart;
 
-        System.out.println(ultrasonicSensor.getAverageVoltage());
+        System.out.println(ultrasonicSensor.getRangeInInches());
         imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
         if (time < 3000) {
             firing = false;
@@ -466,7 +469,7 @@ public class Woolly extends IterativeRobot {
     }
 
     void updateBoom() {
-
+        if (boom.BOOM_ENABLED) return; //early exit, don't do anything.
         if (operatorJoy.getRawButton(6)) {
             //boomMotor.set(.7);
             if (released[21]) {
@@ -576,7 +579,7 @@ public class Woolly extends IterativeRobot {
     void debugSensors() {
         System.out.println("ROT: " + rotEncoder.getAverageVoltage());
         System.out.println("LIN: " + stringEncoder.getAverageVoltage());
-        System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage());
+        System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
         System.out.println("OCT: " + octo.get());
     }
 
