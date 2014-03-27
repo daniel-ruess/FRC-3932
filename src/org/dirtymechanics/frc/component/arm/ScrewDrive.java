@@ -7,7 +7,7 @@ import org.dirtymechanics.frc.util.Updatable;
 /**
  * A controller for a screw drive.
  *
- * @author Daniel Ru
+ * @author Daniel Ruess
  */
 public class ScrewDrive implements Updatable {
 
@@ -15,7 +15,7 @@ public class ScrewDrive implements Updatable {
     public static final Location PASS = new Location(1.7);
     public static final Location HIGH_9 = new Location(2.25);
     public static final Location AUTO = new Location(2.55);
-    public static final Location RESET = new Location(.7); //595
+    public static final Location RESET = new Location(.8); //595
 
     /**
      * Represents a location to move the screw drive to.

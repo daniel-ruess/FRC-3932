@@ -11,7 +11,7 @@ import org.dirtymechanics.frc.util.Updatable;
 public class Boom implements Updatable {
 
     public static final Location MAX = new Location(3.67);
-    public static final Location GROUND = new Location(1.0);
+    public static final Location GROUND = new Location(1.15);
 
     public static final Location TRUSS_SHOT = new Location(3.4);
     public static final Location PASS = new Location(2.0);
@@ -19,8 +19,8 @@ public class Boom implements Updatable {
     public static final Location AUTO = new Location(2.35);
 
     private static final double SPEED = .7D;
-    private static final double ERROR = .1;
-    public boolean BOOM_ENABLED = false;
+    private static final double ERROR = .02;
+    public boolean BOOM_ENABLED = true;
 
     public static class Location {
 

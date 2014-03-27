@@ -115,7 +115,6 @@ public class Woolly extends IterativeRobot {
      */
     private final RotationalEncoder rotEncoder;
     private final MaxBotixMaxSonarEZ4 ultrasonicSensor;
-    
 
     private final DigitalInput octo;
     /**
@@ -162,7 +161,6 @@ public class Woolly extends IterativeRobot {
 
     int counter = 0;
     private long autoStart;
-
 
     public Woolly() {
         driverLeftJoy = new Joystick(1);
@@ -330,6 +328,7 @@ public class Woolly extends IterativeRobot {
 
         System.out.println(ultrasonicSensor.getRangeInInches());
         imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+        System.out.println(imageMatchConfidence);
         if (time < 3000) {
             firing = false;
             transmissionSolenoid.set(false);
@@ -338,7 +337,7 @@ public class Woolly extends IterativeRobot {
             driveTrain.setSpeed(.43, .5);
         } else {
             driveTrain.setSpeed(0, 0);
-            if (imageMatchConfidence > 50 || time > 6000) {
+            if (imageMatchConfidence > 80 || time > 6000) {
                 if (!firing) {
                     roller.openArm();
                     firing = true;
@@ -360,7 +359,6 @@ public class Woolly extends IterativeRobot {
      */
     public void teleopPeriodic() {
         if (counter++ % 20 == 0) { //call per 20 cycles
-            System.out.println(System.currentTimeMillis() - t);
             t = System.currentTimeMillis();
             debugSensors();
             turnOffLEDs();
@@ -398,6 +396,18 @@ public class Woolly extends IterativeRobot {
                 }
             } else {
                 released[8] = true;
+            }
+            if (operatorController.getRawButton(7)) {
+                if (released[7]) {
+                    if (toggle[7]++ % 2 == 0) {
+                        grabSmallSolenoid.set(true);
+                    } else {
+                        grabSmallSolenoid.set(false);
+                    }
+                    released[7] = false;
+                }
+            } else {
+                released[7] = true;
             }
 
             if (operatorController.getRawButton(5)) {
@@ -445,7 +455,7 @@ public class Woolly extends IterativeRobot {
                 released[9] = true;
             }
 
-            if (operatorController.getRawButton(6)) {
+            if (operatorController.getRawButton(6) && operatorController.getRawButton(11)) {
                 startFiringSequence();
             } else {
                 released[6] = true;
@@ -468,7 +478,7 @@ public class Woolly extends IterativeRobot {
     boolean holdingTheBallAndNotFiring() {
         return !octoSwitchOpen && !firing;
     }
-    
+
     void updateRangeLEDs() {
         if (ultrasonicSensor.getRangeInInches() > 105 && ultrasonicSensor.getRangeInInches() < 111) {
             rangeLeds(true);
@@ -478,7 +488,9 @@ public class Woolly extends IterativeRobot {
     }
 
     void updateBoom() {
-        if (!boom.BOOM_ENABLED) return; //early exit, don't do anything.
+        if (!boom.BOOM_ENABLED) {
+            return; //early exit, don't do anything.
+        }
         if (operatorJoy.getRawButton(6)) {
             //boomMotor.set(.7);
             if (released[21]) {
@@ -628,8 +640,8 @@ public class Woolly extends IterativeRobot {
     }
 
     public void teleopInit() {
-        cameraLEDA.set(true);
-        cameraLEDB.set(true);
+        cameraLEDA.set(false);
+        cameraLEDB.set(false);
         signalLEDA.set(false);
         signalLEDB.set(false);
     }
