@@ -1,6 +1,5 @@
 package org.dirtymechanics.frc;
 
-import edu.wpi.first.wpilibj.AnalogChannel;
 import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.IterativeRobot;
@@ -149,7 +148,8 @@ public class Woolly extends IterativeRobot {
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
     private boolean firing;
-    private long fireTime;
+    private long fireButtonPressTime;
+    private long actualFireTime;
     private long octoTime;
     private boolean octoSwitchOpen;
     NetworkTable server = NetworkTable.getTable("SmartDashboard");
@@ -161,7 +161,12 @@ public class Woolly extends IterativeRobot {
 
     int counter = 0;
     private long autoStart;
-
+    
+    private static final int TRUSS_SHOT_BUTTON = 4;
+    private boolean fired;
+    private String firingStatus = "";
+    
+    
     public Woolly() {
         driverLeftJoy = new Joystick(1);
         driverRightJoy = new Joystick(2);
@@ -341,9 +346,9 @@ public class Woolly extends IterativeRobot {
                 if (!firing) {
                     roller.openArm();
                     firing = true;
-                    fireTime = System.currentTimeMillis();
+                    fireButtonPressTime = System.currentTimeMillis();
                 }
-                if (time > 6300 || System.currentTimeMillis() - fireTime > 300) {
+                if (time > 6300 || System.currentTimeMillis() - fireButtonPressTime > 300) {
                     //shooter.fire();
                     firing = false;
                 }
@@ -369,15 +374,23 @@ public class Woolly extends IterativeRobot {
         updateOcto();
 
         if (firing) {
-            if (System.currentTimeMillis() - fireTime > 600) {
-                System.out.println("C");
+            if (isArmingRange()) {
+                roller.openArm();
+                roller.stop();
+            }
+            if (isTimeToResetFireControls()) {
                 resetFireControls();
-            } else if (System.currentTimeMillis() - fireTime > 350) {
-                System.out.println("B");
-                shooter.fire();
+            } else if (isTimeToFire()) {
+                fire();
+                
             } else {
-                System.out.println("A");
-                prepareToFire();
+                //prepareToFire();
+                prepareToFireAtAngle();
+            }
+            if (!isFireButtonPressed()) {
+                 //if the operator has released the fire button and we didn't fire yet
+                 //  then disarm
+                resetFireControls();
             }
         }
         updateScrewDrive();
@@ -455,7 +468,8 @@ public class Woolly extends IterativeRobot {
                 released[9] = true;
             }
 
-            if (operatorController.getRawButton(6) && operatorController.getRawButton(11)) {
+            if (isFireButtonPressed()) {
+                System.out.println("button 6 pressed");
                 startFiringSequence();
             } else {
                 released[6] = true;
@@ -465,14 +479,66 @@ public class Woolly extends IterativeRobot {
         update();
     }
 
+    private boolean isFireButtonPressed() {
+        return operatorController.getRawButton(6);
+    }
+   
+
+    private void fire() {
+        //Only shoot if operator is still holding the fire button...
+        firingStatus = "trying to fire";
+        if (isFireButtonPressed()) {
+            firingStatus = "firing!";
+            System.out.println("fired at range " + ultrasonicSensor.getRangeInInches());
+            shooter.fire();
+            fired = true;
+            actualFireTime = System.currentTimeMillis();
+        }
+    }
+
+    private boolean isTimeToResetFireControls() {
+        final boolean resetDelayExpired = System.currentTimeMillis() - actualFireTime > 250;
+        return resetDelayExpired && fired;
+    }
+
+    private boolean isTimeToFire() {
+        boolean fireDelayExpired = isFireDelayExpired();
+        boolean rangeIsCorrect = isCorrectRange();
+        return fireDelayExpired && rangeIsCorrect;
+    }
+
+    private boolean isFireDelayExpired() {
+        return System.currentTimeMillis() - fireButtonPressTime > 350;
+    }
+    
+    private boolean isArmingRange() {
+        return ultrasonicSensor.getRangeInInches() > 120 && ultrasonicSensor.getRangeInInches() < 123;
+    }
+
+    private boolean isCorrectRange() {
+        return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
+    }
+
     void startFiringSequence() {
-        if (released[6]) {
-            if (operatorController.getRawButton(11) || !octo.get()) {
+        firingStatus = "starting firing sequence";
+        //if (released[6]) {
+            if (isSafeToFire()) {
+                firingStatus = "starting firing sequence safety off";
                 released[6] = false;
                 firing = true;
-                fireTime = System.currentTimeMillis();
+                fireButtonPressTime = System.currentTimeMillis();
             }
-        }
+        //}
+    }
+
+    private boolean isSafeToFire() {
+        return true;  //pressing the fire button WILL fire the mechanism
+        //return operatorController.getRawButton(11) || isBallSwitchOpen();
+    }
+
+    private boolean isBallSwitchOpen() {
+        return false;  //safety is currently disabled so always fire
+        //return !octo.get();
     }
 
     boolean holdingTheBallAndNotFiring() {
@@ -480,7 +546,7 @@ public class Woolly extends IterativeRobot {
     }
 
     void updateRangeLEDs() {
-        if (ultrasonicSensor.getRangeInInches() > 105 && ultrasonicSensor.getRangeInInches() < 111) {
+        if (isCorrectRange()) {
             rangeLeds(true);
         } else {
             rangeLeds(false);
@@ -497,7 +563,7 @@ public class Woolly extends IterativeRobot {
                 boom.increaseOffset();
                 released[21] = false;
             }
-        } else if (operatorJoy.getRawButton(4)) {
+        } else if (operatorJoy.getRawButton(TRUSS_SHOT_BUTTON)) {
             //boomMotor.set(-.7);
             if (released[21]) {
                 boom.decreaseOffset();
@@ -508,7 +574,7 @@ public class Woolly extends IterativeRobot {
             released[21] = true;
         }
 
-        if (operatorController.getRawButton(4)) {
+        if (operatorController.getRawButton(TRUSS_SHOT_BUTTON)) {
             boom.set(Boom.TRUSS_SHOT);
         } else if (operatorController.getRawButton(2)) {
             boom.set(Boom.PASS);
@@ -543,27 +609,39 @@ public class Woolly extends IterativeRobot {
     }
 
     void prepareToFire() {
+        firingStatus = "preparing to fire";
         disableToggles();
         grabLargeSolenoid.set(false);
         grabSmallSolenoid.set(false);
         roller.openArm();
         roller.stop();
     }
+    
+    void prepareToFireAtAngle() {
+        firingStatus = "preparing to fire at angle";
+        disableToggles();
+        boom.set(Boom.HIGH_GOAL_ANGLE);
+        boom.update();
+        grabLargeSolenoid.set(false);
+        grabSmallSolenoid.set(false);
+    }
 
     void resetFireControls() {
+        firingStatus = "resetting fire controls";
         grabLargeSolenoid.set(false);
         grabSmallSolenoid.set(false);
         roller.closeArm();
         roller.stop();
         firing = false;
+        fired = false;
     }
 
-    boolean firingCompleted() {
-        return System.currentTimeMillis() - fireTime > 500;
+    boolean firingButtonTimerExpired() {
+        return System.currentTimeMillis() - fireButtonPressTime > 500;
     }
 
     void updateOcto() {
-        if (!octo.get()) {
+        if (isBallSwitchOpen()) {
             if (!octoSwitchOpen) {
                 octoSwitchOpen = true;
                 octoTime = System.currentTimeMillis();
@@ -602,6 +680,8 @@ public class Woolly extends IterativeRobot {
         System.out.println("LIN: " + stringEncoder.getAverageVoltage());
         System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
         System.out.println("OCT: " + octo.get());
+        System.out.println("firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
+        System.out.println("isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
     }
 
     private void disableToggles() {

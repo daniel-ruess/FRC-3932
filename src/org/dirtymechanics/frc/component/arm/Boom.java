@@ -16,6 +16,8 @@ public class Boom implements Updatable {
     public static final Location TRUSS_SHOT = new Location(3.4);
     public static final Location PASS = new Location(2.0);
     public static final Location HIGH_9 = new Location(2.9);
+    //public static final Location HIGH_GOAL_ANGLE = new Location(3.38);
+    public static final Location HIGH_GOAL_ANGLE = new Location(3.1);
     public static final Location AUTO = new Location(2.35);
 
     private static final double SPEED = .7D;
