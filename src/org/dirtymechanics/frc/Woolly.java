@@ -154,19 +154,17 @@ public class Woolly extends IterativeRobot {
     private boolean octoSwitchOpen;
     NetworkTable server = NetworkTable.getTable("SmartDashboard");
     double imageMatchConfidence = 0.0;
-    private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
 
     private final int[] toggle = new int[30];
     private final boolean[] released = new boolean[30];
 
-    int counter = 0;
+    private long counter = 0;
     private long autoStart;
-    
+
     private static final int TRUSS_SHOT_BUTTON = 4;
     private boolean fired;
     private String firingStatus = "";
-    
-    
+
     public Woolly() {
         driverLeftJoy = new Joystick(1);
         driverRightJoy = new Joystick(2);
@@ -244,6 +242,10 @@ public class Woolly extends IterativeRobot {
 
     public void autonomousInit() {
         autoStart = System.currentTimeMillis();
+        transmissionSolenoid.set(false);
+        grabber.close();
+        screwDrive.set(ScrewDrive.TRUSS_SHOT);
+        boom.set(Boom.TRUSS_SHOT);
         cameraLEDA.set(true);
         cameraLEDB.set(true);
     }
@@ -252,9 +254,38 @@ public class Woolly extends IterativeRobot {
      * This function is called periodically during autonomous.
      */
     public void autonomousPeriodic() {
-        driveForwardUntil3rdSecondOfAutonomous();
-        autonomousExperimintalShooter();
-        //autonomousExperimentalHotGoalShot();
+        long time = System.currentTimeMillis() - autoStart;
+        double dist = ultrasonicSensor.getRangeInInches();
+
+        imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+
+        if (counter++ % 20 == 0) {
+            System.out.println("Conf: " + imageMatchConfidence);
+            System.out.println("Dist: " + dist);
+        }
+
+        if (dist > 80 && time < 3500) {
+            firing = false;
+            driveTrain.setSpeed(.70, .70); //.43
+        } else if (dist < 65 && dist < 70 && time < 3500) {
+            driveTrain.setSpeed(-.3, -.3);
+        }
+
+        if (time > 3600) {
+            driveTrain.setSpeed(0, 0);
+            if (imageMatchConfidence > 80 || time > 6000) {
+                if (!firing) {
+                    roller.openArm();
+                    firing = true;
+                    fireButtonPressTime = System.currentTimeMillis();
+                }
+                if (time > 6300 || System.currentTimeMillis() - fireButtonPressTime > 300) {
+                    shooter.fire();
+                    firing = false;
+                }
+            }
+        }
+        update();
     }
 
     void driveForwardUntil3rdSecondOfAutonomous() {
@@ -365,7 +396,7 @@ public class Woolly extends IterativeRobot {
     public void teleopPeriodic() {
         if (counter++ % 20 == 0) { //call per 20 cycles
             t = System.currentTimeMillis();
-            debugSensors();
+            printDebug();
             turnOffLEDs();
         }
 
@@ -382,17 +413,15 @@ public class Woolly extends IterativeRobot {
                 resetFireControls();
             } else if (isTimeToFire()) {
                 fire();
-                
+
             } else {
-                //prepareToFire();
-                prepareToFireAtAngle();
+                prepareToFire();
             }
             if (!isFireButtonPressed()) {
-                 //if the operator has released the fire button and we didn't fire yet
-                 //  then disarm
                 resetFireControls();
             }
         }
+
         updateScrewDrive();
         updateBoom();
         updateRangeLEDs();
@@ -482,7 +511,6 @@ public class Woolly extends IterativeRobot {
     private boolean isFireButtonPressed() {
         return operatorController.getRawButton(6);
     }
-   
 
     private void fire() {
         //Only shoot if operator is still holding the fire button...
@@ -503,14 +531,14 @@ public class Woolly extends IterativeRobot {
 
     private boolean isTimeToFire() {
         boolean fireDelayExpired = isFireDelayExpired();
-        boolean rangeIsCorrect = isCorrectRange();
+        boolean rangeIsCorrect = true; //isCorrectRange();
         return fireDelayExpired && rangeIsCorrect;
     }
 
     private boolean isFireDelayExpired() {
         return System.currentTimeMillis() - fireButtonPressTime > 350;
     }
-    
+
     private boolean isArmingRange() {
         return ultrasonicSensor.getRangeInInches() > 120 && ultrasonicSensor.getRangeInInches() < 123;
     }
@@ -522,18 +550,18 @@ public class Woolly extends IterativeRobot {
     void startFiringSequence() {
         firingStatus = "starting firing sequence";
         //if (released[6]) {
-            if (isSafeToFire()) {
-                firingStatus = "starting firing sequence safety off";
-                released[6] = false;
-                firing = true;
-                fireButtonPressTime = System.currentTimeMillis();
-            }
+        if (isSafeToFire()) {
+            firingStatus = "starting firing sequence safety off";
+            released[6] = false;
+            firing = true;
+            fireButtonPressTime = System.currentTimeMillis();
+        }
         //}
     }
 
     private boolean isSafeToFire() {
-        return true;  //pressing the fire button WILL fire the mechanism
-        //return operatorController.getRawButton(11) || isBallSwitchOpen();
+        //return true;  //pressing the fire button WILL fire the mechanism
+        return operatorController.getRawButton(11) || isBallSwitchOpen();
     }
 
     private boolean isBallSwitchOpen() {
@@ -611,17 +639,17 @@ public class Woolly extends IterativeRobot {
     void prepareToFire() {
         firingStatus = "preparing to fire";
         disableToggles();
+        grabber.close();
         grabLargeSolenoid.set(false);
         grabSmallSolenoid.set(false);
         roller.openArm();
         roller.stop();
     }
-    
+
     void prepareToFireAtAngle() {
         firingStatus = "preparing to fire at angle";
         disableToggles();
         boom.set(Boom.HIGH_GOAL_ANGLE);
-        boom.update();
         grabLargeSolenoid.set(false);
         grabSmallSolenoid.set(false);
     }
@@ -675,7 +703,7 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
     }
 
-    void debugSensors() {
+    void printDebug() {
         System.out.println("ROT: " + rotEncoder.getAverageVoltage());
         System.out.println("LIN: " + stringEncoder.getAverageVoltage());
         System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());

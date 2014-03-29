@@ -66,8 +66,8 @@ public class Boom implements Updatable {
         }
         if (dif > ERROR) {
             double scale = 1;
-            if (dif <= .5) {
-                scale = 2 * dif;
+            if (dif <= .3) {
+                scale = .2;
             }
             if (dest > rot.getAverageVoltage()) {
                 motor.set(-SPEED * scale);
