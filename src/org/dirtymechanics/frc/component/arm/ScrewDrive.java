@@ -36,6 +36,7 @@ public class ScrewDrive implements Updatable {
     private final Jaguar motor;
     private final StringEncoder string;
     private double dest;
+    private int speedScale = 0;
 
     public ScrewDrive(Jaguar motor, StringEncoder string) {
         this.motor = motor;

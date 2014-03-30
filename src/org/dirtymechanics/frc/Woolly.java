@@ -544,7 +544,8 @@ public class Woolly extends IterativeRobot {
     }
 
     private boolean isCorrectRange() {
-        return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
+        return ultrasonicSensor.getRangeInInches() > 54 && ultrasonicSensor.getRangeInInches() < 84;
+        //return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
     }
 
     void startFiringSequence() {

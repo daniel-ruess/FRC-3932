@@ -1,6 +1,7 @@
 package org.dirtymechanics.frc.component.arm;
 
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.command.PIDSubsystem;
 import org.dirtymechanics.frc.sensor.RotationalEncoder;
 import org.dirtymechanics.frc.util.Updatable;
 
@@ -8,7 +9,8 @@ import org.dirtymechanics.frc.util.Updatable;
  *
  * @author Daniel Ruess
  */
-public class Boom implements Updatable {
+public class PIDBoom extends PIDSubsystem implements Updatable {
+    private static final double P = 3d;
 
     public static final Location MAX = new Location(3.67);
     public static final Location GROUND = new Location(1.15);
@@ -23,6 +25,12 @@ public class Boom implements Updatable {
     private static final double SPEED = .7D;
     private static final double ERROR = .04;
     public boolean BOOM_ENABLED = true;
+    
+    private final Talon motor;
+    private final RotationalEncoder rot;
+    private double dest;
+
+   
 
     public static class Location {
 
@@ -33,20 +41,33 @@ public class Boom implements Updatable {
         }
     }
 
-    private final Talon motor;
-    private final RotationalEncoder rot;
-    private double dest;
 
-    public Boom(Talon motor, RotationalEncoder rot) {
+
+    public PIDBoom(Talon motor, RotationalEncoder rot) {
+        super("Boom", P, 0, 0);
         this.motor = motor;
         this.rot = rot;
+        getPIDController().setContinuous(false);
         if (BOOM_ENABLED) {
             set(PASS);
         }
+        enable();
+    }
+    
+     protected double returnPIDInput() {
+        return rot.pidGet();
+    }
+
+    protected void usePIDOutput(double output) {
+        motor.set(output);
+        
+    }
+
+    protected void initDefaultCommand() {
     }
 
     public final void set(Location dest) {
-        this.dest = dest.loc;
+       setSetpoint(dest.loc);
     }
 
     public void increaseOffset() {
@@ -58,28 +79,6 @@ public class Boom implements Updatable {
     }
 
     public void update() {
-        double dif = Math.abs(dest - rot.getVoltage());
-        if (dest > MAX.loc) {
-            dest = MAX.loc;
-        } else if (dest < GROUND.loc) {
-            dest = GROUND.loc;
-        }
-        if (dif > ERROR) {
-            double scale = 1;
-            if (dif <= .4) {
-                scale = .4;
-            }
-            if (dest > rot.getVoltage()) {
-                motor.set(-SPEED * scale);
-            } else {
-                motor.set(SPEED * scale);
-            }
-        } else {
-            if (rot.getVoltage() > 1.6 && rot.getVoltage() < 3.2) {
-                motor.set(.05);
-            } else {
-                motor.set(0);
-            }
-        }
+        //leave updateing the position to the pid
     }
 }
