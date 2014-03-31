@@ -26,16 +26,16 @@ public class Boom implements Updatable {
 
     public static class Location {
 
-        private final double loc;
+        final double loc;
 
         private Location(double loc) {
             this.loc = loc;
         }
     }
 
-    private final Talon motor;
-    private final RotationalEncoder rot;
-    private double dest;
+    final Talon motor;
+    final RotationalEncoder rot;
+    double dest;
 
     public Boom(Talon motor, RotationalEncoder rot) {
         this.motor = motor;
@@ -45,7 +45,7 @@ public class Boom implements Updatable {
         }
     }
 
-    public final void set(Location dest) {
+    public void set(Location dest) {
         this.dest = dest.loc;
     }
 

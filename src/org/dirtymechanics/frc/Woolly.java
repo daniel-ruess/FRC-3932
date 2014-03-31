@@ -8,11 +8,13 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
 import org.dirtymechanics.frc.component.arm.Shooter;
 import org.dirtymechanics.frc.component.arm.Grabber;
+import org.dirtymechanics.frc.component.arm.PIDBoom;
 import org.dirtymechanics.frc.component.arm.Roller;
 import org.dirtymechanics.frc.component.arm.ScrewDrive;
 import org.dirtymechanics.frc.component.drive.DriveTrain;
@@ -135,7 +137,7 @@ public class Woolly extends IterativeRobot {
     private final Grabber grabber;
     private final ScrewDrive screwDrive;
     private final Shooter shooter;
-    private final Boom boom;
+    private final PIDBoom boom;
     private final Solenoid grabLargeOpen;
     private final Solenoid grabLargeClose;
     private final DoubleSolenoid grabLargeSolenoid;
@@ -219,7 +221,7 @@ public class Woolly extends IterativeRobot {
         grabber = new Grabber(grabSmallSolenoid);
         screwDrive = new ScrewDrive(screwMotor, stringEncoder);
         shooter = new Shooter(screwDrive, firingSolenoid);
-        boom = new Boom(boomMotor, rotEncoder);
+        boom = new PIDBoom(boomMotor, rotEncoder);
 
         updatables = new List();
         updatables.put(transmissionSolenoid);
@@ -228,7 +230,7 @@ public class Woolly extends IterativeRobot {
         updatables.put(firingSolenoid);
         updatables.put(rollerSolenoid);
         updatables.put(shooter);
-        updatables.put(boom);
+        //updatables.put(boom);
         updatables.put(screwDrive);
     }
 
@@ -236,7 +238,11 @@ public class Woolly extends IterativeRobot {
      * Called per first initialization of the robot.
      */
     public void robotInit() {
-        // Initiate the compressor for the pneumatic systems
+        //See if we can send some better telemetry back
+        LiveWindow.addSensor("Boom",  "Rotational Encoder", rotEncoder);
+        LiveWindow.addSensor("Boom", "String Encoder", stringEncoder);
+        LiveWindow.addSensor("Drive", "Ultrasonic", ultrasonicSensor);
+        LiveWindow.addSensor("Boom", "Octo Safety", octo);
         compressor.start();
     }
 
@@ -704,13 +710,22 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
     }
 
-    void printDebug() {
+    void oldPrintDebug() {
         System.out.println("ROT: " + rotEncoder.getAverageVoltage());
         System.out.println("LIN: " + stringEncoder.getAverageVoltage());
         System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
         System.out.println("OCT: " + octo.get());
         System.out.println("firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
         System.out.println("isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
+    }
+    
+    void printDebug() {
+        server.putString("Boom.ROT", "ROT: " + rotEncoder.getAverageVoltage());
+        server.putString("Boom.LIN", "LIN: " + stringEncoder.getAverageVoltage());
+        server.putString("Chassis.ULT", "ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
+        server.putString("Boom.OCT", "OCT: " + octo.get());
+        server.putString("Boom.FIRE", "firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
+        server.putString("Boom.FIRE_PT2", "isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
     }
 
     private void disableToggles() {

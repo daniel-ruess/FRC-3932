@@ -15,16 +15,16 @@ import java.util.Vector;
  * listening to the state of the button and will interpret the changes in 
  * state as clicks, holds or double clicks.
  * 
- * State is returned as a long due to the fact that enums aren't available
+ * State is returned as a int due to the fact that enums aren't available
  * in the target java version - 1.4
  */
 public class ButtonListener {
     public static final long PRESS_MILLIS = 200;
-    public static final long NEUTRAL = 0;
-    public static final long PRESS = 1;
-    public static final long SINGLE_CLICK = 2;
-    public static final long HOLD = 3;
-    public static final long DOUBLE_CLICK = 4;
+    public static final int NEUTRAL = 0;
+    public static final int PRESS = 1;
+    public static final int SINGLE_CLICK = 2;
+    public static final int HOLD = 3;
+    public static final int DOUBLE_CLICK = 4;
     
     
     private long neutralTime = 0l;
@@ -34,8 +34,8 @@ public class ButtonListener {
     private long lastPollTime = -1;
     private long timeElapsedSinceLastPoll = 0;
     
-    private long state = NEUTRAL;
-    private long lastState = NEUTRAL;
+    private int state = NEUTRAL;
+    private int lastState = NEUTRAL;
     Vector listeners = new Vector();  //First libs don't support Collections
     
     public void addListener(ButtonEventHandler listener) {
@@ -43,7 +43,7 @@ public class ButtonListener {
     }
             
     
-    public long getState() {
+    public int getState() {
         return state;
     }
     
