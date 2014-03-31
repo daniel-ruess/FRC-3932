@@ -19,12 +19,12 @@ import java.util.Vector;
  * in the target java version - 1.4
  */
 public class ButtonListener {
-    public static final long PRESS_MILLIS = 200;
-    public static final long NEUTRAL = 0;
-    public static final long PRESS = 1;
-    public static final long SINGLE_CLICK = 2;
-    public static final long HOLD = 3;
-    public static final long DOUBLE_CLICK = 4;
+    public static final int PRESS_MILLIS = 200;
+    public static final int NEUTRAL = 0;
+    public static final int PRESS = 1;
+    public static final int SINGLE_CLICK = 2;
+    public static final int HOLD = 3;
+    public static final int DOUBLE_CLICK = 4;
     
     
     private long neutralTime = 0l;
@@ -34,8 +34,8 @@ public class ButtonListener {
     private long lastPollTime = -1;
     private long timeElapsedSinceLastPoll = 0;
     
-    private long state = NEUTRAL;
-    private long lastState = NEUTRAL;
+    private int state = NEUTRAL;
+    private int lastState = NEUTRAL;
     Vector listeners = new Vector();  //First libs don't support Collections
     
     public void addListener(ButtonEventHandler listener) {

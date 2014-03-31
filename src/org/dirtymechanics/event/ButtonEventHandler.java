@@ -11,6 +11,6 @@ package org.dirtymechanics.event;
  * @author agresh
  */
 public interface ButtonEventHandler {
-    public void onEvent(long buttonEvent);
+    public void onEvent(int buttonEvent);
     
 }

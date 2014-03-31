@@ -9,6 +9,9 @@ import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import org.dirtymechanics.event.ButtonEventHandler;
+import org.dirtymechanics.event.ButtonListener;
+import org.dirtymechanics.event.FireButtonEventHandler;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
 import org.dirtymechanics.frc.component.arm.Shooter;
@@ -32,6 +35,9 @@ import org.dirtymechanics.frc.util.Updatable;
  * directory.
  */
 public class Woolly extends IterativeRobot {
+    
+    
+    
 
     /**
      * The physical left joystick.
@@ -164,6 +170,8 @@ public class Woolly extends IterativeRobot {
     private static final int TRUSS_SHOT_BUTTON = 4;
     private boolean fired;
     private String firingStatus = "";
+//    ButtonListener fireButtonListener;
+//    ButtonEventHandler fireButtonHandler;
 
     public Woolly() {
         driverLeftJoy = new Joystick(1);
@@ -220,6 +228,10 @@ public class Woolly extends IterativeRobot {
         screwDrive = new ScrewDrive(screwMotor, stringEncoder);
         shooter = new Shooter(screwDrive, firingSolenoid);
         boom = new Boom(boomMotor, rotEncoder);
+        
+//        fireButtonListener = new ButtonListener();
+//        fireButtonHandler = new FireButtonEventHandler(operatorController, this);
+//        fireButtonListener.addListener(fireButtonHandler);
 
         updatables = new List();
         updatables.put(transmissionSolenoid);
@@ -394,6 +406,7 @@ public class Woolly extends IterativeRobot {
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
+//        fireButtonListener.updateState(operatorController.getRawButton(6), System.currentTimeMillis());
         if (counter++ % 20 == 0) { //call per 20 cycles
             t = System.currentTimeMillis();
             printDebug();
@@ -498,7 +511,6 @@ public class Woolly extends IterativeRobot {
             }
 
             if (isFireButtonPressed()) {
-                System.out.println("button 6 pressed");
                 startFiringSequence();
             } else {
                 released[6] = true;
@@ -755,7 +767,7 @@ public class Woolly extends IterativeRobot {
         signalLEDB.set(false);
     }
 
-    private void rangeLeds(boolean b) {
+    public void rangeLeds(boolean b) {
         signalLEDA.set(b);
         signalLEDB.set(b);
     }
