@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import org.dirtymechanics.event.ButtonListener;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
 import org.dirtymechanics.frc.component.arm.Shooter;
@@ -46,7 +47,7 @@ public class Woolly extends IterativeRobot {
     /**
      * The operator's controller.
      */
-    private final Joystick operatorController;
+    final Joystick operatorController;
     /**
      * The operator's joystick.
      */
@@ -106,7 +107,7 @@ public class Woolly extends IterativeRobot {
     /**
      * The solenoid controlling the grabber.
      */
-    private final DoubleSolenoid grabSmallSolenoid;
+    final DoubleSolenoid grabSmallSolenoid;
     /**
      * The string encoder used for the screw drive.
      */
@@ -115,7 +116,7 @@ public class Woolly extends IterativeRobot {
      * The rotational encoder used for the boom.
      */
     private final RotationalEncoder rotEncoder;
-    private final MaxBotixMaxSonarEZ4 ultrasonicSensor;
+    final MaxBotixMaxSonarEZ4 ultrasonicSensor;
 
     private final DigitalInput octo;
     /**
@@ -130,17 +131,17 @@ public class Woolly extends IterativeRobot {
      * List of all the updatable objects.
      */
     private final List updatables;
-    private final Roller roller;
+    final Roller roller;
     private final Solenoid firingOpen;
     private final Solenoid firingClose;
     private final DoubleSolenoid firingSolenoid;
-    private final Grabber grabber;
+    final Grabber grabber;
     private final ScrewDrive screwDrive;
-    private final Shooter shooter;
-    private final PIDBoom boom;
+    final Shooter shooter;
+    final PIDBoom boom;
     private final Solenoid grabLargeOpen;
     private final Solenoid grabLargeClose;
-    private final DoubleSolenoid grabLargeSolenoid;
+    final DoubleSolenoid grabLargeSolenoid;
     private final Solenoid rollerOpen;
     private final Solenoid rollerClose;
     private final Solenoid cameraLEDA;
@@ -149,9 +150,9 @@ public class Woolly extends IterativeRobot {
     private final Solenoid signalLEDB;
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
-    private boolean firing;
+    boolean firing;
     private long fireButtonPressTime;
-    private long actualFireTime;
+    long actualFireTime;
     private long octoTime;
     private boolean octoSwitchOpen;
     NetworkTable server = NetworkTable.getTable("SmartDashboard");
@@ -164,8 +165,11 @@ public class Woolly extends IterativeRobot {
     private long autoStart;
 
     private static final int TRUSS_SHOT_BUTTON = 4;
-    private boolean fired;
-    private String firingStatus = "";
+    boolean fired;
+    String firingStatus = "";
+    FireButtonEventHandler fireButtonHandler;
+    ButtonListener fireButtonListener;
+    private int FIRE_BUTTON = 6;
 
     public Woolly() {
         driverLeftJoy = new Joystick(1);
@@ -232,6 +236,8 @@ public class Woolly extends IterativeRobot {
         updatables.put(shooter);
         //updatables.put(boom);
         updatables.put(screwDrive);
+        
+        
     }
 
     /**
@@ -244,6 +250,11 @@ public class Woolly extends IterativeRobot {
         LiveWindow.addSensor("Drive", "Ultrasonic", ultrasonicSensor);
         LiveWindow.addSensor("Boom", "Octo Safety", octo);
         compressor.start();
+        fireButtonListener = new ButtonListener();
+        fireButtonHandler = new FireButtonEventHandler(operatorController, this);
+        fireButtonListener.addListener(fireButtonHandler);
+        
+        
     }
 
     public void autonomousInit() {
@@ -400,6 +411,7 @@ public class Woolly extends IterativeRobot {
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
+        fireButtonListener.updateState(operatorController.getRawButton(FIRE_BUTTON), System.currentTimeMillis());
         if (counter++ % 20 == 0) { //call per 20 cycles
             t = System.currentTimeMillis();
             printDebug();
@@ -416,16 +428,16 @@ public class Woolly extends IterativeRobot {
                 roller.stop();
             }
             if (isTimeToResetFireControls()) {
-                resetFireControls();
-            } else if (isTimeToFire()) {
-                fire();
+                fireButtonHandler.resetFireControls();
+            } else if (isFireDelayExpired()) {
+                fireButtonHandler.fire(isCorrectRange());
 
             } else {
-                prepareToFire();
+                fireButtonHandler.prepareToFire();
             }
-            if (!isFireButtonPressed()) {
-                resetFireControls();
-            }
+//            if (!isFireButtonPressed()) {
+//                resetFireControls();
+//            }
         }
 
         updateScrewDrive();
@@ -503,31 +515,9 @@ public class Woolly extends IterativeRobot {
                 released[9] = true;
             }
 
-            if (isFireButtonPressed()) {
-                System.out.println("button 6 pressed");
-                startFiringSequence();
-            } else {
-                released[6] = true;
-            }
         }
 
         update();
-    }
-
-    private boolean isFireButtonPressed() {
-        return operatorController.getRawButton(6);
-    }
-
-    private void fire() {
-        //Only shoot if operator is still holding the fire button...
-        firingStatus = "trying to fire";
-        if (isFireButtonPressed()) {
-            firingStatus = "firing!";
-            System.out.println("fired at range " + ultrasonicSensor.getRangeInInches());
-            shooter.fire();
-            fired = true;
-            actualFireTime = System.currentTimeMillis();
-        }
     }
 
     private boolean isTimeToResetFireControls() {
@@ -535,43 +525,27 @@ public class Woolly extends IterativeRobot {
         return resetDelayExpired && fired;
     }
 
-    private boolean isTimeToFire() {
-        boolean fireDelayExpired = isFireDelayExpired();
-        boolean rangeIsCorrect = true; //isCorrectRange();
-        return fireDelayExpired && rangeIsCorrect;
-    }
 
     private boolean isFireDelayExpired() {
         return System.currentTimeMillis() - fireButtonPressTime > 350;
     }
 
     private boolean isArmingRange() {
-        return ultrasonicSensor.getRangeInInches() > 120 && ultrasonicSensor.getRangeInInches() < 123;
+        //return ultrasonicSensor.getRangeInInches() > 120 && ultrasonicSensor.getRangeInInches() < 123;
+        return ultrasonicSensor.getRangeInInches() > 93 && ultrasonicSensor.getRangeInInches() < 101;
     }
 
     private boolean isCorrectRange() {
         return ultrasonicSensor.getRangeInInches() > 54 && ultrasonicSensor.getRangeInInches() < 84;
-        //return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
     }
+    
+//Range leds use isCorrectRange - don't send mixed messages, but this is the old range...    
+//    private boolean isFiringRange() {
+//        return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
+//    }
 
-    void startFiringSequence() {
-        firingStatus = "starting firing sequence";
-        //if (released[6]) {
-        if (isSafeToFire()) {
-            firingStatus = "starting firing sequence safety off";
-            released[6] = false;
-            firing = true;
-            fireButtonPressTime = System.currentTimeMillis();
-        }
-        //}
-    }
 
-    private boolean isSafeToFire() {
-        //return true;  //pressing the fire button WILL fire the mechanism
-        return operatorController.getRawButton(11) || isBallSwitchOpen();
-    }
-
-    private boolean isBallSwitchOpen() {
+    boolean isBallSwitchOpen() {
         return false;  //safety is currently disabled so always fire
         //return !octo.get();
     }
@@ -643,34 +617,6 @@ public class Woolly extends IterativeRobot {
         }
     }
 
-    void prepareToFire() {
-        firingStatus = "preparing to fire";
-        disableToggles();
-        grabber.close();
-        grabLargeSolenoid.set(false);
-        grabSmallSolenoid.set(false);
-        roller.openArm();
-        roller.stop();
-    }
-
-    void prepareToFireAtAngle() {
-        firingStatus = "preparing to fire at angle";
-        disableToggles();
-        boom.set(Boom.HIGH_GOAL_ANGLE);
-        grabLargeSolenoid.set(false);
-        grabSmallSolenoid.set(false);
-    }
-
-    void resetFireControls() {
-        firingStatus = "resetting fire controls";
-        grabLargeSolenoid.set(false);
-        grabSmallSolenoid.set(false);
-        roller.closeArm();
-        roller.stop();
-        firing = false;
-        fired = false;
-    }
-
     boolean firingButtonTimerExpired() {
         return System.currentTimeMillis() - fireButtonPressTime > 500;
     }
@@ -728,7 +674,7 @@ public class Woolly extends IterativeRobot {
         server.putString("Boom.FIRE_PT2", "isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
     }
 
-    private void disableToggles() {
+    void disableToggles() {
 
         if (toggle[5] % 2 == 0) { //disable all roller/grabber toggles
             toggle[5]++;
