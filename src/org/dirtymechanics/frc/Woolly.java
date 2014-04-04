@@ -35,7 +35,18 @@ import org.dirtymechanics.frc.util.Updatable;
  * directory.
  */
 public class Woolly extends IterativeRobot {
+    
+    public static final int ARMING_RANGE_MIN = 93;
+    public static final int ARMING_RANGE_MAX = 101;
+    public static final int FIRING_RANGE_MIN = 54;
+    public static final int FIRING_RANGE_MAX = 84;
 
+
+    int firingRangeMin = FIRING_RANGE_MIN;
+    int armingRangeMin = ARMING_RANGE_MIN;
+    int armingRangeMax = ARMING_RANGE_MAX;
+    int firingRangeMax = FIRING_RANGE_MAX;    
+    
     /**
      * The physical left joystick.
      */
@@ -244,17 +255,28 @@ public class Woolly extends IterativeRobot {
      * Called per first initialization of the robot.
      */
     public void robotInit() {
+        serverRangeLimitsInit();
         //See if we can send some better telemetry back
         LiveWindow.addSensor("Boom",  "Rotational Encoder", rotEncoder);
         LiveWindow.addSensor("Boom", "String Encoder", stringEncoder);
         LiveWindow.addSensor("Drive", "Ultrasonic", ultrasonicSensor);
         LiveWindow.addSensor("Boom", "Octo Safety", octo);
+        //Set some initial values for pid controller
+        boom.init(server);
         compressor.start();
         fireButtonListener = new ButtonListener();
         fireButtonHandler = new FireButtonEventHandler(operatorController, this);
         fireButtonListener.addListener(fireButtonHandler);
         
         
+    }
+
+    void serverRangeLimitsInit() {
+        //Set some initial values for firing range at the dashboard...
+        server.putNumber("FIRING_RANGE_MIN.in", firingRangeMin);
+        server.putNumber("FIRING_RANGE_MAX.in", firingRangeMax);
+        server.putNumber("ARMING_RANGE_MIN.in", armingRangeMin);
+        server.putNumber("ARMING_RANGE_MAX.in", armingRangeMax);
     }
 
     public void autonomousInit() {
@@ -411,13 +433,14 @@ public class Woolly extends IterativeRobot {
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
+        getRangeLimitsFromServer();
+        writeRangeLimitsToServer();
         fireButtonListener.updateState(operatorController.getRawButton(FIRE_BUTTON), System.currentTimeMillis());
+        boom.update(server);
         if (counter++ % 20 == 0) { //call per 20 cycles
             t = System.currentTimeMillis();
             printDebug();
-            turnOffLEDs();
         }
-
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
         setTransmission(buttonMap.isTransmissionHigh());
         updateOcto();
@@ -530,19 +553,22 @@ public class Woolly extends IterativeRobot {
         return System.currentTimeMillis() - fireButtonPressTime > 350;
     }
 
-    private boolean isArmingRange() {
+    boolean isArmingRange() {
         //return ultrasonicSensor.getRangeInInches() > 120 && ultrasonicSensor.getRangeInInches() < 123;
-        return ultrasonicSensor.getRangeInInches() > 93 && ultrasonicSensor.getRangeInInches() < 101;
+        return ultrasonicSensor.getRangeInInches() > armingRangeMin && ultrasonicSensor.getRangeInInches() < armingRangeMax;
     }
-
-    private boolean isCorrectRange() {
-        return ultrasonicSensor.getRangeInInches() > 54 && ultrasonicSensor.getRangeInInches() < 84;
+    
+    boolean isCorrectRange() {
+        return ultrasonicSensor.getRangeInInches() > firingRangeMin && ultrasonicSensor.getRangeInInches() < firingRangeMax;
     }
+    
+    
     
 //Range leds use isCorrectRange - don't send mixed messages, but this is the old range...    
 //    private boolean isFiringRange() {
 //        return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
 //    }
+    
 
 
     boolean isBallSwitchOpen() {
@@ -656,22 +682,19 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
     }
 
-    void oldPrintDebug() {
-        System.out.println("ROT: " + rotEncoder.getAverageVoltage());
-        System.out.println("LIN: " + stringEncoder.getAverageVoltage());
-        System.out.println("ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
-        System.out.println("OCT: " + octo.get());
-        System.out.println("firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
-        System.out.println("isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
-    }
-    
     void printDebug() {
-        server.putString("Boom.ROT", "ROT: " + rotEncoder.getAverageVoltage());
-        server.putString("Boom.LIN", "LIN: " + stringEncoder.getAverageVoltage());
-        server.putString("Chassis.ULT", "ULT: " + ultrasonicSensor.getAverageVoltage() + " Inches:  " + ultrasonicSensor.getRangeInInches());
-        server.putString("Boom.OCT", "OCT: " + octo.get());
         server.putString("Boom.FIRE", "firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
         server.putString("Boom.FIRE_PT2", "isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
+        server.putNumber("Boom.LIN", stringEncoder.getAverageVoltage());
+        server.putBoolean("Boom.OCT", octo.get());
+        server.putNumber("Chassis.ULT.vlt", ultrasonicSensor.getAverageVoltage());
+        server.putNumber("Chassis.ULT.inch", ultrasonicSensor.getRangeInInches());
+       
+    }
+    
+    public void testPeriodic() {
+        LiveWindow.run();
+        printDebug();
     }
 
     void disableToggles() {
@@ -714,10 +737,44 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
         signalLEDA.set(false);
         signalLEDB.set(false);
+        if (boom.BOOM_ENABLED) {
+            boom.set(boom.PASS);
+        }
+        
     }
 
     private void rangeLeds(boolean b) {
         signalLEDA.set(b);
         signalLEDB.set(b);
+    }
+
+    private void getRangeLimitsFromServer() {
+        firingRangeMin = getIntFromServerValue("FIRING_RANGE_MIN.in", FIRING_RANGE_MIN);
+        firingRangeMax = getIntFromServerValue("FIRING_RANGE_MAX.in", FIRING_RANGE_MAX);
+        armingRangeMin = getIntFromServerValue("ARMING_RANGE_MIN.in", ARMING_RANGE_MIN);
+        armingRangeMax = getIntFromServerValue("ARMING_RANGE_MAX.in", ARMING_RANGE_MAX);
+    }
+
+    /**
+     * Reads the value from the server and returns it if it could be digested or
+     * returns the passed defaultValue if it can't.
+     * @param tableKey
+     * @param defaultValue 
+     */
+    int getIntFromServerValue(String tableKey, int defaultValue) {
+        try {
+            return (int) server.getNumber(tableKey, defaultValue);
+        } catch (Throwable e) {
+            System.out.println("Failed to read tableKey=" + tableKey);
+            return defaultValue;
+        }
+    }
+
+    private void writeRangeLimitsToServer() {
+        server.putNumber("FIRING_RANGE_MIN", firingRangeMin);
+        server.putNumber("FIRING_RANGE_MAX", firingRangeMax);
+        server.putNumber("ARMING_RANGE_MIN", armingRangeMin);
+        server.putNumber("ARMING_RANGE_MAX", armingRangeMax);
+        
     }
 }

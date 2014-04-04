@@ -2,6 +2,7 @@ package org.dirtymechanics.frc.component.arm;
 
 import edu.wpi.first.wpilibj.Talon;
 import edu.wpi.first.wpilibj.command.PIDSubsystem;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import org.dirtymechanics.frc.sensor.RotationalEncoder;
 
 /**
@@ -9,7 +10,39 @@ import org.dirtymechanics.frc.sensor.RotationalEncoder;
  * @author Daniel Ruess
  */
 public class PIDBoom extends Boom {
-    static final double P = 3d;
+    
+    public static final String SERVER_D_IN = "Boom.D.in";
+    public static final String SERVER_I_IN = "Boom.I.in";
+    public static final String SERVER_P_IN = "Boom.P.in";
+    
+    
+    /*
+    
+Ziegler–Nichols method
+Control Type	K_p	        K_i             K_d
+P	        0.50{K_u}	-               -
+PI	        0.45{K_u}	1.2{K_p}/P_u	-
+PID	        0.60{K_u}	2{K_p}/P_u	{K_p}{P_u}/8
+    
+    
+
+    */
+    //Gentle 2 second period
+//    public double P = .01d;
+//    public double I = .00075d; //.001 close
+//    public double D = .0d; //.009 would be to correct for speed
+    //More aggressive oscillation
+//    public double p = .011d;
+//    public double i = .0022d; //.001 close
+//    public double d = .001388d; //.009 would be to correct for speed
+    //No oscillation but also not very self correcting / precise
+    public double p = .017d;
+    public double i = .0d;
+    public double d = .0d;
+    
+    private double pidInput=0;
+    private double pidOutput=0;
+
    PIDSubsystem pid;
 
 
@@ -22,22 +55,30 @@ public class PIDBoom extends Boom {
         if (BOOM_ENABLED) {
             set(PASS);
         }
-        
     }
-    
+
+    public void init(NetworkTable server) {
+        server.putNumber(SERVER_P_IN, p);
+        server.putNumber(SERVER_I_IN, i);
+        server.putNumber(SERVER_D_IN, d);
+    }
+
     class BoomPIDController extends PIDSubsystem {
         
         public BoomPIDController() {
-            super("Boom", P, 0, 0);
+            super("Boom", p, i, d);
+            System.out.println("System.currentTimeMillis()" + "," + "P" + "," + "I" + "," + "D" + "," + "pidInput" + "," + "pidOutput");
             enable();
         }
 
         protected double returnPIDInput() {
-           return rot.pidGet();
+           pidInput = rot.pidGet();
+           return pidInput;
        }
 
        protected void usePIDOutput(double output) {
-           motor.set(output);
+           pidOutput = -1* output;
+           motor.set(pidOutput);
 
        }
 
@@ -61,9 +102,32 @@ public class PIDBoom extends Boom {
     }
 
     /**
-     * overrides parent class method to do nothing.
+     * updates the pid display fields, reads any pid values that might
+     * have been entered from the dashboard and updates the pid values,
+     * writes pid logging info to System.out in CSV format 
      */
-    public void update() {
-        //leave updateing the position to the pid
+    public void update(NetworkTable server) {
+        updateDashboard(server);
+        setPIDFromDashboardInputs(server);
+        System.out.println(System.currentTimeMillis() + "," + p + "," + i + "," + d + "," + pidInput + "," + pidOutput);
     }
+
+    void setPIDFromDashboardInputs(NetworkTable server) {
+        //...update from the dashboard...
+        p = server.getNumber(SERVER_P_IN);
+        i = server.getNumber(SERVER_I_IN);
+        d = server.getNumber(SERVER_D_IN);
+    }
+
+    void updateDashboard(NetworkTable server) {
+        //send the current values back to the server...
+        server.putNumber("Boom.P", p);
+        server.putNumber("Boom.I", i);
+        server.putNumber("Boom.D", d);
+        server.putNumber("Boom.pidInput", pidInput);
+        server.putNumber("Boom.pidOutput", pidOutput);
+        server.putNumber("Boom.rot.pid", rot.pidGet());
+        server.putNumber("Boom.rot.vlt", rot.getAverageVoltage());
+    }
+    
 }

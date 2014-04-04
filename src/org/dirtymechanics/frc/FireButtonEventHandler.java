@@ -37,14 +37,17 @@ public class FireButtonEventHandler implements ButtonEventHandler {
     public void onEvent(int buttonEvent) {
         switch (buttonEvent) {
             case ButtonListener.SINGLE_CLICK:
+                System.out.println("click");
                 isImmediate = true;
                 shoot(true);
                 break;
             case ButtonListener.HOLD:
+                System.out.println("hold");
                 isImmediate = false;
                 shoot(false);
                 break;
             case ButtonListener.NEUTRAL:
+                System.out.println("neutral");
                 resetFireControls();
                 break;
         }
