@@ -10,18 +10,17 @@ import org.dirtymechanics.frc.util.Updatable;
  */
 public class Boom implements Updatable {
 
-    public static final Location MAX = new Location(3.67);
-    public static final Location GROUND = new Location(1.15);
+    public static final Location MAX = new Location(1.00);
+    public static final Location MIN = new Location(4.00);
 
-    public static final Location TRUSS_SHOT = new Location(3.44);
-    public static final Location PASS = new Location(2.0);
-    public static final Location HIGH_9 = new Location(2.9);
-    //public static final Location HIGH_GOAL_ANGLE = new Location(3.38);
-    public static final Location HIGH_GOAL_ANGLE = new Location(3.1);
-    public static final Location AUTO = new Location(2.35);
+    public static final Location REST = new Location(1.25);
+    public static final Location AUTONOMOUS_SHOT = new Location(1.74);
+    public static final Location HIGH_GOAL = new Location(1.74);
+    public static final Location GROUND = MIN;
+    public static final Location PASS = GROUND;//new Location(3.26);
 
     private static final double SPEED = .7D;
-    private static final double ERROR = .04;
+    private static final double ERROR = .05;
     public boolean BOOM_ENABLED = true;
 
     public static class Location {
@@ -41,7 +40,7 @@ public class Boom implements Updatable {
         this.motor = motor;
         this.rot = rot;
         if (BOOM_ENABLED) {
-            set(PASS);
+            set(HIGH_GOAL);
         }
     }
 
@@ -59,23 +58,23 @@ public class Boom implements Updatable {
 
     public void update() {
         double dif = Math.abs(dest - rot.getVoltage());
-        if (dest > MAX.loc) {
+        if (dest < MAX.loc) {
             dest = MAX.loc;
-        } else if (dest < GROUND.loc) {
-            dest = GROUND.loc;
+        } else if (dest > MIN.loc) {
+            dest = MIN.loc;
         }
         if (dif > ERROR) {
             double scale = 1;
             if (dif <= .4) {
-                scale = .4;
+                scale = .22;
             }
             if (dest > rot.getVoltage()) {
-                motor.set(-SPEED * scale);
-            } else {
                 motor.set(SPEED * scale);
+            } else {
+                motor.set(-SPEED * scale);
             }
         } else {
-            if (rot.getVoltage() > 1.6 && rot.getVoltage() < 3.2) {
+            if (rot.getVoltage() > 1.55 && rot.getVoltage() < 2.3) {
                 motor.set(.05);
             } else {
                 motor.set(0);

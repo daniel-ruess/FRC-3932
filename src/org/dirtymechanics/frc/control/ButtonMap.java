@@ -47,7 +47,7 @@ public class ButtonMap {
                 leftSpeed = spd;
             }
         }
-        return leftSpeed;
+        return spd; //leftSpeed;
     }
 
     public double getDriveRight() {
@@ -67,11 +67,14 @@ public class ButtonMap {
                 rightSpeed = spd;
             }
         }
-        return rightSpeed;
+        return spd;//rightSpeed;
     }
 
     public boolean isTransmissionHigh() {
         boolean state = right.getRawButton(1);
+        if (true) {
+            return state;
+        }
         if (state != transmissionLast) {
             transmissionFlip++;
             if (transmissionFlip % 2 == 0) {
