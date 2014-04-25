@@ -13,7 +13,7 @@ import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import org.dirtymechanics.event.ButtonEventHandler;
 import org.dirtymechanics.event.ButtonListener;
-import org.dirtymechanics.event.FireButtonEventHandler;
+import org.dirtymechanics.frc.FireButtonEventHandler;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
 import org.dirtymechanics.frc.component.arm.Shooter;
@@ -705,7 +705,7 @@ public class Woolly extends IterativeRobot {
         }
     }
 
-    private void disableToggles() {
+    void disableToggles() {
         for (int i = 0; i < toggle.length; ++i) {
             setToggle(i, false);
         }
