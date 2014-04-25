@@ -10,6 +10,9 @@ import org.dirtymechanics.frc.sensor.RotationalEncoder;
  * @author Daniel Ruess
  */
 public class PIDBoom extends Boom {
+    //All the locations need retouching since originals were based on voltage and news are based on encoder reading
+    public static final Location PID_PASS = new Location(500.0);  
+
     
     public static final String SERVER_D_IN = "Boom.D.in";
     public static final String SERVER_I_IN = "Boom.I.in";
@@ -53,7 +56,7 @@ PID	        0.60{K_u}	2{K_p}/P_u	{K_p}{P_u}/8
         //Boom does this in it's constructor, but without the pid 
         //  enabled that won't do anything.
         if (BOOM_ENABLED) {
-            set(PASS);
+            set(PID_PASS);
         }
     }
 
@@ -67,7 +70,6 @@ PID	        0.60{K_u}	2{K_p}/P_u	{K_p}{P_u}/8
         
         public BoomPIDController() {
             super("Boom", p, i, d);
-            System.out.println("System.currentTimeMillis()" + "," + "P" + "," + "I" + "," + "D" + "," + "pidInput" + "," + "pidOutput");
             enable();
         }
 
@@ -109,7 +111,6 @@ PID	        0.60{K_u}	2{K_p}/P_u	{K_p}{P_u}/8
     public void update(NetworkTable server) {
         updateDashboard(server);
         setPIDFromDashboardInputs(server);
-        System.out.println(System.currentTimeMillis() + "," + p + "," + i + "," + d + "," + pidInput + "," + pidOutput);
     }
 
     void setPIDFromDashboardInputs(NetworkTable server) {

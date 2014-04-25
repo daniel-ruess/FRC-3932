@@ -738,7 +738,7 @@ public class Woolly extends IterativeRobot {
         signalLEDA.set(false);
         signalLEDB.set(false);
         if (boom.BOOM_ENABLED) {
-            boom.set(boom.PASS);
+            boom.set(boom.PID_PASS);
         }
         
     }

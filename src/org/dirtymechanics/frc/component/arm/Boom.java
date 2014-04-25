@@ -13,8 +13,10 @@ public class Boom  {
     public static final Location MAX = new Location(3.67);
     public static final Location GROUND = new Location(1.15);
 
+    public static final Location PASS = new Location(500.0);  
     public static final Location TRUSS_SHOT = new Location(3.44);
-    public static final Location PASS = new Location(500.0);
+	//All the locations need retouching since originals were based on voltage and news are based on encoder reading
+	//public static final Location PASS = new Location(500.0);  
     public static final Location HIGH_9 = new Location(2.9);
     //public static final Location HIGH_GOAL_ANGLE = new Location(3.38);
     public static final Location HIGH_GOAL_ANGLE = new Location(3.1);
@@ -28,7 +30,7 @@ public class Boom  {
 
         final double loc;
 
-        private Location(double loc) {
+        Location(double loc) {
             this.loc = loc;
         }
     }
