@@ -282,7 +282,7 @@ public class Woolly extends IterativeRobot {
         autoStart = System.currentTimeMillis();
         disableToggles();
         screwDrive.set(ScrewDrive.AUTONOMOUS_SHOT);
-        boom.set(Boom.AUTONOMOUS_SHOT);
+        boom.set(Boom.MAX);
         transmissionSolenoid.set(true);
         cameraLEDA.set(true);
         cameraLEDB.set(true);
@@ -304,8 +304,16 @@ public class Woolly extends IterativeRobot {
             rollerMotor.set(Relay.Value.kOff);
         }
 
-        if (time < 3400) {
-            if (imageMatchConfidence > 10) {
+        if (time < 4200) {
+            if (time < 175) {
+                roller.openArm();
+                grabSmallSolenoid.setOpen();
+            } else {
+                roller.closeArm();
+                grabSmallSolenoid.setClosed();
+                boom.set(Boom.AUTONOMOUS_SHOT);
+            }
+            if (imageMatchConfidence > 35 && time > 300) {
                 hot = true;
             }
             if (dist > 150) {
@@ -328,10 +336,11 @@ public class Woolly extends IterativeRobot {
             driveTrain.setSpeed(0, 0);
         }
 
-        if (time > 3400) {
-            if (hot || imageMatchConfidence > 5 || time > 6000) {
+        if (time > 4400) {
+            if (hot || imageMatchConfidence > 35 || time > 6000) {
                 if (!firing) {
                     roller.openArm();
+                    grabSmallSolenoid.setOpen();
                     firing = true;
                     fireButtonPressTime = System.currentTimeMillis();
                 }
@@ -434,7 +443,7 @@ public class Woolly extends IterativeRobot {
             firing = false;
             transmissionSolenoid.set(false);
             screwDrive.set(ScrewDrive.TRUSS_SHOT);
-            boom.set(Boom.AUTONOMOUS_SHOT);
+            //boom.set(Boom.AUTONOMOUS_SHOT);
             driveTrain.setSpeed(.43, .5);
         } else {
             driveTrain.setSpeed(0, 0);
@@ -473,6 +482,7 @@ public class Woolly extends IterativeRobot {
         if (firing) {
             if (isArmingRange()) {
                 roller.openArm();
+                grabSmallSolenoid.setOpen();
                 roller.stop();
             }
             if (isTimeToResetFireControls()) {
@@ -660,17 +670,21 @@ public class Woolly extends IterativeRobot {
                 octoSwitchOpen = true;
                 octoTime = System.currentTimeMillis();
             }
+        } else {
+            octoSwitchOpen = false;
         }
 
         if (octoSwitchOpen) {
-            if (System.currentTimeMillis() - octoTime > 200) {
-                setToggle(largeGrabberToggle, false);
-                if (System.currentTimeMillis() - octoTime > 500) {
-                    setToggle(rollerArmToggle, false);
-                    octoSwitchOpen = false;
-                } else {
-                    disableToggles();
+            if (System.currentTimeMillis() - octoTime > 250) {
+                if (!operatorController.getRawButton(rollerReverseToggle)) {
+                    setToggle(rollerReverseToggle, false);
                 }
+                if (System.currentTimeMillis() - octoTime > 600) {
+                    setToggle(rollerArmToggle, false);
+                }
+                setToggle(largeGrabberToggle, false);
+                setToggle(smallGrabberToggle, false);
+                setToggle(rollerForwardToggle, false);
             }
         }
     }
@@ -684,11 +698,12 @@ public class Woolly extends IterativeRobot {
     }
 
     void turnOffLEDs() {
-        cameraLEDA.set(true);
+        cameraLEDA.set(false);
         cameraLEDB.set(false);
     }
 
     void printDebug() {
+        
         server.putNumber("BOOM.ROT", rotEncoder.getAverageVoltage());
         server.putNumber("BOOM.LIN", stringEncoder.getAverageVoltage());
         server.putNumber("BOOM.RANGE.V", ultrasonicSensor.getAverageVoltage());
@@ -727,6 +742,7 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
         signalLEDA.set(false);
         signalLEDB.set(false);
+        screwDrive.set(ScrewDrive.RESET);
         disableToggles();
     }
 

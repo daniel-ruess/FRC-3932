@@ -11,13 +11,13 @@ import org.dirtymechanics.frc.util.Updatable;
 public class Boom implements Updatable {
 
     public static final Location MAX = new Location(1.00);
-    public static final Location MIN = new Location(4.00);
+    public static final Location MIN = new Location(4.10);
 
     public static final Location REST = new Location(1.25);
     public static final Location AUTONOMOUS_SHOT = new Location(1.74);
     public static final Location HIGH_GOAL = new Location(1.74);
     public static final Location GROUND = MIN;
-    public static final Location PASS = GROUND;//new Location(3.26);
+    public static final Location PASS = new Location(2.75);//GROUND;//new Location(3.26);
 
     private static final double SPEED = .7D;
     private static final double ERROR = .05;
@@ -74,8 +74,8 @@ public class Boom implements Updatable {
                 motor.set(-SPEED * scale);
             }
         } else {
-            if (rot.getVoltage() > 1.55 && rot.getVoltage() < 2.3) {
-                motor.set(.05);
+            if (rot.getVoltage() > 1.4 && rot.getVoltage() < 2.3) {
+                motor.set(-.05);
             } else {
                 motor.set(0);
             }
