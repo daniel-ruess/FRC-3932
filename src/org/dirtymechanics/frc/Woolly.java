@@ -8,17 +8,23 @@ import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Talon;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import org.dirtymechanics.event.ButtonEventHandler;
+import org.dirtymechanics.event.ButtonListener;
+import org.dirtymechanics.frc.FireButtonEventHandler;
 import org.dirtymechanics.frc.actuator.DoubleSolenoid;
 import org.dirtymechanics.frc.component.arm.Boom;
 import org.dirtymechanics.frc.component.arm.Shooter;
 import org.dirtymechanics.frc.component.arm.Grabber;
+import org.dirtymechanics.frc.component.arm.PIDBoom;
 import org.dirtymechanics.frc.component.arm.Roller;
 import org.dirtymechanics.frc.component.arm.ScrewDrive;
 import org.dirtymechanics.frc.component.drive.DriveTrain;
 import org.dirtymechanics.frc.component.drive.Transmission;
 import org.dirtymechanics.frc.control.ButtonMap;
+import org.dirtymechanics.frc.sensor.MaxBotixMaxSonarEZ4;
 import org.dirtymechanics.frc.sensor.RotationalEncoder;
 import org.dirtymechanics.frc.sensor.StringEncoder;
 import org.dirtymechanics.frc.util.List;
@@ -36,28 +42,38 @@ public class Woolly extends IterativeRobot {
     /**
      * The physical left joystick.
      */
-    private final Joystick joystickLeft;
+    private final Joystick driverLeftJoy;
     /**
      * The physical right joystick.
      */
-    private final Joystick joystickRight;
+    private final Joystick driverRightJoy;
     /**
-     * The physical controller.
+     * The operator's controller.
      */
-    private final Joystick joystickController;
+    final Joystick operatorController;
+    /**
+     * The operator's joystick.
+     */
+    private final Joystick operatorJoy;
     /**
      * The compressor's controller.
      */
     private final Compressor compressor;
     /**
-     * Jaguar that's driving the left two motors.
+     * Jaguar that's driving the first left motor.
      */
     private final Jaguar leftDriveMotorA;
+    /**
+     * Jaguar that's driving the second left motor.
+     */
     private final Jaguar leftDriveMotorB;
     /**
-     * Jaguar that's driving the right two motors.
+     * Jaguar that's driving the first right motor.
      */
     private final Jaguar rightDriveMotorA;
+    /**
+     * Jaguar that's driving the second right motor.
+     */
     private final Jaguar rightDriveMotorB;
     /**
      * Jaguar controlling the screw drive.
@@ -94,7 +110,7 @@ public class Woolly extends IterativeRobot {
     /**
      * The solenoid controlling the grabber.
      */
-    private final DoubleSolenoid grabSmallSolenoid;
+    final DoubleSolenoid grabSmallSolenoid;
     /**
      * The string encoder used for the screw drive.
      */
@@ -103,6 +119,7 @@ public class Woolly extends IterativeRobot {
      * The rotational encoder used for the boom.
      */
     private final RotationalEncoder rotEncoder;
+    final MaxBotixMaxSonarEZ4 ultrasonicSensor;
 
     private final DigitalInput octo;
     /**
@@ -117,33 +134,64 @@ public class Woolly extends IterativeRobot {
      * List of all the updatable objects.
      */
     private final List updatables;
-    private final Roller roller;
+    final Roller roller;
     private final Solenoid firingOpen;
     private final Solenoid firingClose;
     private final DoubleSolenoid firingSolenoid;
-    private final Grabber grabber;
+    final Grabber grabber;
     private final ScrewDrive screwDrive;
-    private final Shooter shooter;
-    private final Boom boom;
+    final Shooter shooter;
+    final PIDBoom boom;
     private final Solenoid grabLargeOpen;
     private final Solenoid grabLargeClose;
-    private final DoubleSolenoid grabLargeSolenoid;
+    final DoubleSolenoid grabLargeSolenoid;
     private final Solenoid rollerOpen;
     private final Solenoid rollerClose;
-    private final Solenoid lightSolenoidA;
-    private final Solenoid lightSolenoidB;
+    private final Solenoid cameraLEDA;
+    private final Solenoid cameraLEDB;
+    private final Solenoid signalLEDA;
+    private final Solenoid signalLEDB;
     private final DoubleSolenoid rollerSolenoid;
     private final Transmission transmission;
-    private long catchTime;
-    private boolean fired;
-    private long fireTime;
+    boolean firing;
+    private long fireButtonPressTime;
+    long actualFireTime;
+    private long octoTime;
+    private boolean octoSwitchOpen;
+    NetworkTable server = NetworkTable.getTable("SmartDashboard");
+    double imageMatchConfidence = 0.0;
+
+    private final int[] toggle = new int[30];
+    private final boolean[] released = new boolean[30];
+
+    private long counter = 0;
+    private long autoStart;
+
+    private static final int TRUSS_SHOT_BUTTON = 4;
+    boolean fired;
+    String firingStatus = "";
+    FireButtonEventHandler fireButtonHandler;
+    ButtonListener fireButtonListener;
+    private int FIRE_BUTTON = 6;
+
+    private final int largeGrabberToggle = 8;
+    private final int smallGrabberToggle = 7;
+    private final int rollerArmToggle = 5;
+    private final int rollerForwardToggle = 10;
+    private final int rollerReverseToggle = 9;
+    private int idealMaxAutoRange = 112;
+    private int idealMinAutoRange = 104;
+    private final int MAX_AUTO_RANGE = idealMaxAutoRange;
+    private final int MIN_AUTO_RANGE = idealMinAutoRange;
+    private int shotsFired = 0;
 
     public Woolly() {
-        joystickLeft = new Joystick(1);
-        joystickRight = new Joystick(2);
-        joystickController = new Joystick(3);
+        driverLeftJoy = new Joystick(1);
+        driverRightJoy = new Joystick(2);
+        operatorController = new Joystick(3);
+        operatorJoy = new Joystick(4);
 
-        buttonMap = new ButtonMap(joystickLeft, joystickRight, joystickController);
+        buttonMap = new ButtonMap(driverLeftJoy, driverRightJoy, operatorController);
 
         compressor = new Compressor(1, 1);
 
@@ -175,11 +223,14 @@ public class Woolly extends IterativeRobot {
         rollerClose = new Solenoid(1, 4);
         rollerSolenoid = new DoubleSolenoid(rollerOpen, rollerClose);
 
-        lightSolenoidA = new Solenoid(2, 7);
-        lightSolenoidB = new Solenoid(2, 8);
+        cameraLEDA = new Solenoid(2, 7);
+        cameraLEDB = new Solenoid(2, 8);
+        signalLEDA = new Solenoid(2, 5);
+        signalLEDB = new Solenoid(2, 6);
 
         stringEncoder = new StringEncoder(1);
         rotEncoder = new RotationalEncoder(2);
+        ultrasonicSensor = new MaxBotixMaxSonarEZ4(3);
         octo = new DigitalInput(2);
 
         driveTrain = new DriveTrain(leftDriveMotorA, leftDriveMotorB, rightDriveMotorA, rightDriveMotorB);
@@ -188,8 +239,11 @@ public class Woolly extends IterativeRobot {
         grabber = new Grabber(grabSmallSolenoid);
         screwDrive = new ScrewDrive(screwMotor, stringEncoder);
         shooter = new Shooter(screwDrive, firingSolenoid);
-        boom = new Boom(boomMotor, rotEncoder);
+        boom = new PIDBoom(boomMotor, rotEncoder);
 
+//        fireButtonListener = new ButtonListener();
+//        fireButtonHandler = new FireButtonEventHandler(operatorController, this);
+//        fireButtonListener.addListener(fireButtonHandler);
         updatables = new List();
         updatables.put(transmissionSolenoid);
         updatables.put(grabSmallSolenoid);
@@ -197,283 +251,488 @@ public class Woolly extends IterativeRobot {
         updatables.put(firingSolenoid);
         updatables.put(rollerSolenoid);
         updatables.put(shooter);
-        updatables.put(boom);
+        //updatables.put(boom);
         updatables.put(screwDrive);
+        updatables.put(driveTrain);
+        
     }
 
     /**
      * Called per first initialization of the robot.
      */
     public void robotInit() {
-        // Initiate the compressor for the pneumatic systems
+        //See if we can send some better telemetry back
+        LiveWindow.addSensor("Boom",  "Rotational Encoder", rotEncoder);
+        LiveWindow.addSensor("Boom", "String Encoder", stringEncoder);
+        LiveWindow.addSensor("Drive", "Ultrasonic", ultrasonicSensor);
+        LiveWindow.addSensor("Boom", "Octo Safety", octo);
         compressor.start();
-        lightSolenoidA.set(true);
-        lightSolenoidB.set(true);
+        fireButtonListener = new ButtonListener();
+        fireButtonHandler = new FireButtonEventHandler(operatorController, this);
+        fireButtonListener.addListener(fireButtonHandler);
+        server.putNumber("idealMaxRange", idealMaxAutoRange);
+        server.putNumber("idealMinRange", idealMinAutoRange);
+        server.putNumber("BOOM.ROT.PID.IN", 0d);
+//        if (boom.BOOM_ENABLED) {
+//            boom.set(Boom.HIGH_GOAL);
+//        }
+        //No point in checking boom enabled here because it will try to go
+        //to position "0" by default.
+            boom.set(PIDBoom.PID_PASS);
+
+        
     }
 
-    private int mode = 0, lastMode = -1, firingMode = 1, lastFiringMode = -1;
+    public void autonomousInit() {
+        idealMaxAutoRange = getIntFromServerValue("idealMaxRange", MAX_AUTO_RANGE);
+        idealMinAutoRange = getIntFromServerValue("idealMinRange", MIN_AUTO_RANGE);
+        autoStart = System.currentTimeMillis();
+        disableToggles();
+        screwDrive.set(ScrewDrive.AUTONOMOUS_SHOT);
+        boom.set(Boom.MAX);
+        transmissionSolenoid.set(true);
+        cameraLEDA.set(true);
+        cameraLEDB.set(true);
+    }
+    private boolean hot = false;
 
-    private final int[] toggle = new int[20];
-    private final boolean[] released = new boolean[20];
+    /**
+     * This function is called periodically during autonomous.
+     */
+    public void autonomousPeriodic() {
+        long time = System.currentTimeMillis() - autoStart;
+        double dist = ultrasonicSensor.getRangeInInches();
+
+        imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+        updateBasedOnSmartDash();
+
+        if (octo.get() && time < 3000) {
+            rollerMotor.set(Relay.Value.kForward);
+        } else {
+            rollerMotor.set(Relay.Value.kOff);
+        }
+
+        if (time < 4200) {
+            if (time < 175) {
+                roller.openArm();
+                grabSmallSolenoid.setOpen();
+            } else {
+                roller.closeArm();
+                grabSmallSolenoid.setClosed();
+                boom.set(Boom.AUTONOMOUS_SHOT);
+            }
+            if (imageMatchConfidence > 35 && time > 300) {
+                hot = true;
+            }
+            if (dist > 150) {
+                driveTrain.setSpeed(.75, .80); //.43
+                server.putString("Auto", "Driving");
+            } else if (dist > 92) {
+                driveTrain.setSpeed(.3, .3); //.43
+                server.putString("Auto", "Slowing");
+            } else if (dist > 75 && dist < 85) {
+                driveTrain.setSpeed(0, 0);
+                server.putString("Auto", "Stopped at range");
+            } else if (dist < 75) {
+                driveTrain.setSpeed(-.3, -.3);
+                server.putString("Auto", "Overshot");
+            } else {
+                driveTrain.setSpeed(0, 0);
+                server.putString("Auto", "Stopped");
+            }
+        } else {
+            driveTrain.setSpeed(0, 0);
+        }
+
+        if (time > 4400) {
+            if (hot || imageMatchConfidence > 35 || time > 6000) {
+                if (!firing) {
+                    roller.openArm();
+                    grabSmallSolenoid.setOpen();
+                    firing = true;
+                    fireButtonPressTime = System.currentTimeMillis();
+                }
+                if ((time > 6300 || System.currentTimeMillis() - fireButtonPressTime > 300)) {
+                    shooter.fire();
+                    firing = false;
+                }
+            }
+        }
+        update();
+        if (dist < 85) {
+            signalLEDA.set(true);
+        } else {
+            signalLEDA.set(false);
+        }
+        if (dist > 75) {
+            signalLEDB.set(true);
+        } else {
+            signalLEDB.set(false);
+        }
+        printDebug();
+    }
+
+    void driveForwardUntil3rdSecondOfAutonomous() {
+        long time = System.currentTimeMillis() - autoStart;
+        if (time < 3000) {
+            driveTrain.setSpeed(-.73, .75);
+        } else {
+            driveTrain.setSpeed(0, 0);
+        }
+
+    }
+
+    //Experimental, not currently called.
+    void autonomousExperimentalHotGoalShot() {
+        //HOT_CONFIDENCE = server.getNumber("HOT_Confidence", 0.0);
+        // Algorithm one: One ball, hot vision
+        /*
+         if (HOT_CONFIDENCE > 75.0) {
+         //shoot
+         }
+         else {
+         //wait a few seconds
+         }
+         */
+        //Algorithm two
+        long dif = System.currentTimeMillis() - autoStart;
+        if (dif > 0 && dif < 2000) {
+            driveTrain.setSpeed(-1, 1);
+        } else {
+            //if (dif > 2000 && dif < 2300) {
+            driveTrain.setSpeed(0, 0);
+        }/*
+         if (dif > 2300) {
+         roller.openArm();
+         }
+         if (dif > 2500) {
+         shooter.fire();
+         }
+         update();*/
+
+    }
+
+    //TODO extract class PeriodicAutonomousShooter, this method would be "update"
+    //  members would be appropriate controls passed in constructor.
+    //Experimental, not currently called.
+    void autonomousExperimintalShooter() {
+        /*if (time < 750) {
+         boom.set(Boom.AUTO);
+         screwDrive.set(ScrewDrive.AUTO);
+         roller.forward();
+         } else if (octo.get() && time < 1000) {
+         roller.forward();
+         } else {
+         roller.stop();
+         }
+
+         if (time < 3500) {
+         driveTrain.setSpeed(-.73, .75);
+         } else if (time > 3700) {
+         grabLargeSolenoid.set(false);
+         grabSmallSolenoid.set(false);
+         roller.openArm();
+         roller.stop();
+         if (time > 4200) {
+         resetFireControls();
+         } else if (time > 4050) {
+         shooter.fire();
+         }
+         } else {
+
+         driveTrain.setSpeed(0, 0);
+         }
+         update();*/
+
+        long time = System.currentTimeMillis() - autoStart;
+
+        imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+        if (time < 3000) {
+            firing = false;
+            transmissionSolenoid.set(false);
+            screwDrive.set(ScrewDrive.TRUSS_SHOT);
+            //boom.set(Boom.AUTONOMOUS_SHOT);
+            driveTrain.setSpeed(.43, .5);
+        } else {
+            driveTrain.setSpeed(0, 0);
+            if (imageMatchConfidence > 80 || time > 6000) {
+                if (!firing) {
+                    roller.openArm();
+                    firing = true;
+                    fireButtonPressTime = System.currentTimeMillis();
+                }
+                if (time > 6300 || System.currentTimeMillis() - fireButtonPressTime > 300) {
+                    //shooter.fire();
+                    firing = false;
+                }
+            }
+        }
+        update();
+    }
+
+    long t = 0;
 
     /**
      * This function is called periodically during operator control.
      */
     public void teleopPeriodic() {
+        fireButtonListener.updateState(operatorController.getRawButton(FIRE_BUTTON), System.currentTimeMillis());
+        if (counter++ % 20 == 0) { //call per 20 cycles
+            t = System.currentTimeMillis();
+            printDebug();
+            turnOffLEDs();
+        }
+
         driveTrain.setSpeed(buttonMap.getDriveLeft(), buttonMap.getDriveRight());
-        
-        if (buttonMap.isTransmissionHigh()) {
+        setTransmission(buttonMap.isTransmissionHigh());
+        updateOcto();
+
+        if (firing) {
+            if (isArmingRange()) {
+                roller.openArm();
+                grabSmallSolenoid.setOpen();
+                roller.stop();
+            }
+            if (isTimeToResetFireControls()) {
+                fireButtonHandler.resetFireControls();
+            } else if (isFireDelayExpired()) {
+                fireButtonHandler.fire(isCorrectRange());
+
+            } else {
+                fireButtonHandler.prepareToFire();
+            }
+//            if (!isFireButtonPressed()) {
+//                resetFireControls();
+//            }
+        }
+
+        updateScrewDrive();
+        updateBoom();
+        updateRangeLEDs();
+
+        if (!firing) {
+            //large arm
+            if (operatorController.getRawButton(8)) {
+                if (released[8]) {
+                    toggle[8]++;
+                    released[8] = false;
+                }
+            } else {
+                released[8] = true;
+            }
+
+            //small arm
+            if (operatorController.getRawButton(7)) {
+                if (released[7]) {
+                    toggle[7]++;
+                    released[7] = false;
+                }
+            } else {
+                released[7] = true;
+            }
+
+            //roller arm
+            if (operatorController.getRawButton(5)) {
+                if (released[5]) {
+                    toggle[5]++;
+                    released[5] = false;
+                }
+            } else {
+                released[5] = true;
+            }
+
+            //roller forward
+            if (operatorController.getRawButton(10)) {
+                if (released[10]) {
+                    toggle[10]++;
+                    released[10] = false;
+                }
+            } else {
+                released[10] = true;
+            }
+
+            //roller rev
+            if (operatorController.getRawButton(9)) {
+                if (released[9]) {
+                    toggle[9]++;
+                    released[9] = false;
+                }
+            } else {
+                released[9] = true;
+            }
+
+        }
+
+        update();
+    }
+
+    private boolean isTimeToResetFireControls() {
+        final boolean resetDelayExpired = System.currentTimeMillis() - actualFireTime > 250;
+        return resetDelayExpired && fired;
+    }
+
+
+    private boolean isFireDelayExpired() {
+        return System.currentTimeMillis() - fireButtonPressTime > 350;
+    }
+
+    private boolean isArmingRange() {
+        return ultrasonicSensor.getRangeInInches() > 100 && ultrasonicSensor.getRangeInInches() < 115;
+    }
+
+    private boolean isCorrectRange() {
+        return ultrasonicSensor.getRangeInInches() > 75 && ultrasonicSensor.getRangeInInches() < 85;
+    }
+    
+//Range leds use isCorrectRange - don't send mixed messages, but this is the old range...    
+//    private boolean isFiringRange() {
+//        return ultrasonicSensor.getRangeInInches() > 108 && ultrasonicSensor.getRangeInInches() < 111;
+//    }
+
+
+    boolean isBallSwitchOpen() {
+        return !octo.get();
+    }
+
+    boolean holdingTheBallAndNotFiring() {
+        return !octoSwitchOpen && !firing;
+    }
+
+    void updateRangeLEDs() {
+        if (isCorrectRange()) {
+            rangeLeds(true);
+        } else {
+            rangeLeds(false);
+        }
+    }
+
+    void updateBoom() {
+        if (!boom.BOOM_ENABLED) {
+            return; //early exit, don't do anything.
+        }
+        if (operatorJoy.getRawButton(6)) {
+            //boomMotor.set(.7);
+            if (released[21]) {
+                boom.increaseOffset();
+                released[21] = false;
+            }
+        } else if (operatorJoy.getRawButton(4)) {
+            //boomMotor.set(-.7);
+            if (released[21]) {
+                boom.decreaseOffset();
+                released[21] = false;
+            }
+        } else {
+            //boomMotor.set(0);
+            released[21] = true;
+        }
+
+        if (operatorController.getRawButton(4)) {
+            boom.set(Boom.HIGH_GOAL);
+        } else if (operatorController.getRawButton(2)) {
+            boom.set(Boom.PASS);
+        } else if (operatorController.getRawButton(1)) {
+            boom.set(Boom.REST);
+        } else if (operatorController.getRawButton(3)) {
+            boom.set(Boom.GROUND);
+            setToggle(smallGrabberToggle, true);
+            setToggle(rollerForwardToggle, true);
+            setToggle(rollerReverseToggle, false);
+        }
+    }
+
+    void updateScrewDrive() {
+        if (operatorController.getRawAxis(5) < -.5) {
+            screwDrive.set(ScrewDrive.RESET);
+        } else if (operatorController.getRawAxis(5) > .5) {
+            screwDrive.set(ScrewDrive.TRUSS_SHOT);
+        } else if (operatorController.getRawAxis(6) > .5) {
+            screwDrive.set(ScrewDrive.PASS);
+        } else if (operatorController.getRawAxis(6) < -.5) {
+            screwDrive.set(ScrewDrive.HIGH_GOAL);
+        }
+
+        if (operatorJoy.getRawAxis(6) < -.5) {
+            if (released[20]) {
+                screwDrive.increaseOffset();
+                released[20] = false;
+            }
+            released[20] = false;
+        } else if (operatorJoy.getRawAxis(6) > .5) {
+            if (released[20]) {
+                screwDrive.decreaseOffset();
+                released[20] = false;
+            }
+        } else {
+            released[20] = true;
+        }
+    }
+
+    boolean firingButtonTimerExpired() {
+        return System.currentTimeMillis() - fireButtonPressTime > 500;
+    }
+
+    void updateOcto() {
+        if (isBallSwitchOpen()) {
+            if (!octoSwitchOpen) {
+                octoSwitchOpen = true;
+                octoTime = System.currentTimeMillis();
+            }
+        } else {
+            octoSwitchOpen = false;
+        }
+
+        if (octoSwitchOpen) {
+            if (System.currentTimeMillis() - octoTime > 250) {
+                if (!operatorController.getRawButton(rollerReverseToggle)) {
+                    setToggle(rollerReverseToggle, false);
+                }
+                if (System.currentTimeMillis() - octoTime > 600) {
+                    setToggle(rollerArmToggle, false);
+                }
+                setToggle(largeGrabberToggle, false);
+                setToggle(smallGrabberToggle, false);
+                setToggle(rollerForwardToggle, false);
+            }
+        }
+    }
+
+    void setTransmission(boolean transmissionHigh) {
+        if (transmissionHigh) {
             transmission.setHigh();
         } else {
             transmission.setLow();
         }
+    }
+
+    void turnOffLEDs() {
+        cameraLEDA.set(false);
+        cameraLEDB.set(false);
+    }
+
+    void printDebug() {
         
-        if (!octo.get()) {
-            if (toggle[7] % 2 == 0) {
-                toggle[7]++;
-            }
-            if (toggle[8] % 2 == 0) {
-                toggle[8]++;
-            }
-            if (toggle[9] % 2 == 0) {
-                toggle[9]++;
-            }
-            if (toggle[10] % 2 == 0) {
-                toggle[10]++;
-            }
-            grabLargeSolenoid.set(false);
-            grabSmallSolenoid.set(false);
-            roller.closeArm();
-        }
+        server.putNumber("BOOM.ROT", rotEncoder.getAverageVoltage());
+        server.putNumber("BOOM.ROT.PID", rotEncoder.pidGet());
+        server.putNumber("BOOM.LIN", stringEncoder.getAverageVoltage());
+        server.putNumber("BOOM.RANGE.V", ultrasonicSensor.getAverageVoltage());
+        server.putNumber("IMAGE.CONF", imageMatchConfidence);
+        server.putNumber("BOOM.RANGE.I", ultrasonicSensor.getRangeInInches());
+        server.putBoolean("OCT", octo.get());
+        //System.out.println("firingStatus=" + firingStatus + " firing=" + firing + " fired=" + fired + " fireButtonPressTime=" + fireButtonPressTime + " actualFireTime=" + actualFireTime);
+        //System.out.println("isTimeToResetFireControls=" + isTimeToResetFireControls() + " fireDelayExpired=" + isFireDelayExpired() + " isCorrectRange=" + isCorrectRange());
+    }
 
-        if (joystickController.getRawAxis(6) == -1) {
-            screwMotor.set(.5);
-        } else if (joystickController.getRawAxis(6) == 1) {
-            screwMotor.set(-.5);
-        } else {
-            screwMotor.set(0);
+    void setToggle(int num, boolean value) {
+        if (toggle[num] % 2 == 0 != value) {
+            toggle[num]++;
         }
+    }
 
-        if (joystickController.getRawAxis(5) == -1) {
-            screwDrive.set(ScrewDrive.HIGH_5);
-        } else if (joystickController.getRawAxis(5) == 1) {
-            screwDrive.set(ScrewDrive.HIGH_9);
+    void disableToggles() {
+        for (int i = 0; i < toggle.length; ++i) {
+            setToggle(i, false);
         }
-
-        if (joystickController.getRawButton(4)) {
-            boom.set(Boom.HIGH_9);
-        } else if (joystickController.getRawButton(2)) {
-            boom.set(Boom.HIGH_5);
-        } else if (joystickController.getRawButton(3)) {
-            boom.set(Boom.GATHERING);
-        } else if (joystickController.getRawButton(1)) {
-            // fourth slot, TBD; against low->high?
-        }
-
-        if (joystickController.getRawButton(8)) {
-            if (released[8]) {
-                if (toggle[8]++ % 2 == 0) {
-                    grabLargeSolenoid.set(true);
-                } else {
-                    grabLargeSolenoid.set(false);
-                }
-                released[8] = false;
-            }
-        } else {
-            released[8] = true;
-        }
-
-        if (joystickController.getRawButton(7)) {
-            if (released[7]) {
-                if (toggle[7]++ % 2 == 0) {
-                    grabSmallSolenoid.set(true);
-                } else {
-                    grabSmallSolenoid.set(false);
-                }
-                released[7] = false;
-            }
-        } else {
-            released[7] = true;
-        }
-
-        if (joystickController.getRawButton(5)) {
-            if (released[5]) {
-                if (toggle[5]++ % 2 == 0) {
-                    roller.openArm();
-                } else {
-                    roller.closeArm();
-                }
-                released[5] = false;
-            }
-        } else {
-            released[5] = true;
-        }
-
-        if (joystickController.getRawButton(10)) {
-            if (released[10]) {
-                if (toggle[10]++ % 2 == 0) {
-                    if (toggle[9] % 2 != 0) {
-                        toggle[9]++;
-                    }
-                    roller.forward();
-                } else {
-                    roller.stop();
-                }
-                released[10] = false;
-            }
-        } else {
-            released[10] = true;
-        }
-
-        if (joystickController.getRawButton(9)) {
-            if (released[9]) {
-                if (toggle[9]++ % 2 == 0) {
-                    if (toggle[10] % 2 != 0) {
-                        toggle[10]++;
-                    }
-                    roller.reverse();
-                } else {
-                    roller.stop();
-                }
-                released[9] = false;
-            }
-        } else {
-            released[9] = true;
-        }
-
-        if (joystickController.getRawButton(6)) {
-            if (released[6]) {
-                released[6] = false;
-                fired = true;
-                fireTime = System.currentTimeMillis();
-            }
-        } else {
-            released[6] = true;
-        }
-
-        if (fired) {
-            grabSmallSolenoid.set(true);
-            roller.openArm();
-            if (System.currentTimeMillis() - fireTime > 500) {
-                roller.closeArm();
-                grabSmallSolenoid.set(false);
-            } else if (System.currentTimeMillis() - fireTime > 350) {
-                shooter.fire();
-            }
-        }
-
-        update();
-        if (true) {
-            return;
-        }
-        for (int i = 0; i < 15; ++i) {
-            double d = joystickController.getRawAxis(i);
-            if (d > .1 || d < -.1) {
-                System.out.println(i + ": " + d);
-            }
-        }
-
-        if (joystickController.getRawButton(4)) { // high 5
-            mode = 2;
-        } else if (joystickController.getRawButton(2)) { // high 9
-            mode = 3;
-        } else if (joystickController.getRawButton(1)) { // start
-            mode = 0;
-        } else if (joystickController.getRawButton(3)) { // gather
-            mode = 1;
-        } else if (joystickController.getRawButton(5)) { // close
-            mode = 4;
-        }
-
-        /*if (joystickController.getRawButton(8)) { // catch
-         if ((mode == 5 || mode == 10) && released) {
-         mode = 10;
-         } else {
-         mode = 5;
-         released = false;
-         }
-         } else {
-         released = true;
-         }*/
-        if (joystickController.getRawButton(7)) {
-            roller.reverse();
-        }
-
-        //if (mode != lastMode) {
-        switch (mode) {
-            case 0: // start
-                boom.set(Boom.START);
-                shooter.set(ScrewDrive.HIGH_9);
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                break;
-            case 1: // gather
-                boom.set(Boom.GATHERING);
-                shooter.set(ScrewDrive.HIGH_9);
-                grabSmallSolenoid.set(true);
-                grabLargeSolenoid.set(false);
-                roller.closeArm();
-                roller.forward();
-                if (!octo.get()) {
-                    mode = 1;
-                }
-                break;
-            case 4: // gather (off)
-                boom.set(Boom.GATHERING);
-                shooter.set(ScrewDrive.HIGH_9);
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                break;
-            case 2: // high 5
-                boom.set(Boom.HIGH_5);
-                shooter.set(ScrewDrive.HIGH_5);
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                break;
-            case 3: // high 9
-                boom.set(Boom.HIGH_9);
-                shooter.set(ScrewDrive.HIGH_9);
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(false);
-                roller.closeArm();
-                roller.stop();
-                break;
-            case 5: // catching
-                boom.set(Boom.HIGH_5);
-                shooter.set(ScrewDrive.HIGH_5);
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(true);
-                roller.openArm();
-                roller.stop();
-                if (!octo.get()) {
-                    catchTime = System.currentTimeMillis();
-                    mode = 10;
-                }
-                break;
-            case 10: // catch
-                grabSmallSolenoid.set(false);
-                grabLargeSolenoid.set(false);
-                roller.stop();
-                if (System.currentTimeMillis() - catchTime > 500) {
-                    roller.closeArm();
-                }
-                break;
-        }
-        //}
-        lastMode = mode;
-
-        SmartDashboard.putNumber("Rot: ", rotEncoder.getVoltage());
-        SmartDashboard.putNumber("Rot a: ", rotEncoder.getAverageVoltage());
-        SmartDashboard.putNumber("Dist: ", stringEncoder.getVoltage());
-        SmartDashboard.putNumber("Dist: a", stringEncoder.getVoltage());
-        SmartDashboard.putNumber("Mode: ", mode);
-        update();
     }
 
     /**
@@ -487,11 +746,41 @@ public class Woolly extends IterativeRobot {
         }
     }
 
-    /**
-     * This function is called periodically during autonomous.
-     */
-    public void autonomousPeriodic() {
-        NetworkTable server = NetworkTable.getTable("SmartDashboard");
-        System.out.println(server.getNumber("HOT_CONFIDENCE", 0.0));
+    public void teleopInit() {
+        cameraLEDA.set(false);
+        cameraLEDB.set(false);
+        signalLEDA.set(false);
+        signalLEDB.set(false);
+        //screwDrive.set(ScrewDrive.RESET);
+        disableToggles();
+    }
+
+    public void rangeLeds(boolean b) {
+        signalLEDA.set(b);
+        signalLEDB.set(b);
+    }
+
+    private void logFiringTelemetry() {
+        final String logMessage = System.currentTimeMillis() + " Range="
+                + ultrasonicSensor.getRangeInInches() + ", Rot.v=" + rotEncoder.getAverageVoltage() + ", Str.volt="
+                + stringEncoder.getAverageVoltage() + ", leftA=" + leftDriveMotorA.getSpeed()
+                + ", rightA=" + rightDriveMotorA.getSpeed();
+        System.out.println(logMessage);
+        server.putString(++shotsFired + "shot", logMessage);
+    }
+
+    int getIntFromServerValue(String tableKey, int defaultValue) {
+        try {
+            return (int) server.getNumber(tableKey);
+        } catch (Throwable e) {
+            System.out.println("failed to get tableKey=" + tableKey);
+            return defaultValue;
+        }
+    }
+
+    private void updateBasedOnSmartDash() {
+        if (server.getNumber("BOOM.ROT.PID.IN") != 0) {
+            PIDBoom.PID_PASS = new Boom.Location(server.getNumber("BOOM.ROT.PID.IN"));
+        }
     }
 }

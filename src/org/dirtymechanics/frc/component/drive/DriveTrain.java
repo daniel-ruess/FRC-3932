@@ -1,14 +1,18 @@
 package org.dirtymechanics.frc.component.drive;
 
 import edu.wpi.first.wpilibj.Jaguar;
+import org.dirtymechanics.frc.util.Updatable;
 
 /**
  * Controls the components of the drive train on the robot.
  *
  * @author Daniel Ruess
  */
-public class DriveTrain {
-
+public class DriveTrain implements Updatable {
+    
+    private double leftSpeedReal = 0, leftSpeedTarget = 0;
+    private double rightSpeedReal = 0, rightSpeedTarget = 0;
+    
     /**
      * The PWM controller handling the speed of the left motors.
      */
@@ -32,9 +36,9 @@ public class DriveTrain {
      *
      * @param speed The speed.
      */
-    public void setLeftSpeed(double speed) {
-        driveLeftA.set(speed);
-        driveLeftB.set(speed);
+    private void setLeftSpeed(double speed) {
+        driveLeftA.set(-speed);
+        driveLeftB.set(-speed);
     }
 
     /**
@@ -42,7 +46,7 @@ public class DriveTrain {
      *
      * @param speed The speed.
      */
-    public void setRightSpeed(double speed) {
+    private void setRightSpeed(double speed) {
         driveRightA.set(speed);
         driveRightB.set(speed);
     }
@@ -54,7 +58,39 @@ public class DriveTrain {
      * @param right The right speed.
      */
     public void setSpeed(double left, double right) {
-        setLeftSpeed(left);
-        setRightSpeed(right);
+        leftSpeedTarget = left;
+        rightSpeedTarget = right;
+    }
+    
+    public void update() {
+        if (leftSpeedTarget > 0) {
+            if (leftSpeedTarget > leftSpeedReal) {
+                leftSpeedReal += .0625;
+            } else {
+                leftSpeedReal = leftSpeedTarget;
+            }
+        } else {
+            if (leftSpeedTarget < leftSpeedReal) {
+                leftSpeedReal -= .0625;
+            } else {
+                leftSpeedReal = leftSpeedTarget;
+            }
+        }
+        
+        if (rightSpeedTarget > 0) {
+            if (rightSpeedTarget > rightSpeedReal) {
+                rightSpeedReal += .0625;
+            } else {
+                rightSpeedReal = rightSpeedTarget;
+            }
+        } else {
+            if (rightSpeedTarget < rightSpeedReal) {
+                rightSpeedReal -= .0625;
+            } else {
+                rightSpeedReal = rightSpeedTarget;
+            }
+        }
+        setLeftSpeed(leftSpeedReal);
+        setRightSpeed(rightSpeedReal);
     }
 }
