@@ -18,6 +18,7 @@ public class Boom implements Updatable {
     public static final Location HIGH_GOAL = new Location(1.74);
     public static final Location GROUND = MIN;
     public static final Location PASS = new Location(2.75);//GROUND;//new Location(3.26);
+    
 
     private static final double SPEED = .7D;
     private static final double ERROR = .05;
@@ -25,9 +26,9 @@ public class Boom implements Updatable {
 
     public static class Location {
 
-        final double loc;
+        public final double loc;
 
-        private Location(double loc) {
+        public Location(double loc) {
             this.loc = loc;
         }
     }
@@ -39,9 +40,7 @@ public class Boom implements Updatable {
     public Boom(Talon motor, RotationalEncoder rot) {
         this.motor = motor;
         this.rot = rot;
-        if (BOOM_ENABLED) {
-            set(HIGH_GOAL);
-        }
+        
     }
 
     public void set(Location dest) {

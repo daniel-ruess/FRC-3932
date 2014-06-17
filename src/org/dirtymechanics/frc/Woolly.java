@@ -272,6 +272,13 @@ public class Woolly extends IterativeRobot {
         fireButtonListener.addListener(fireButtonHandler);
         server.putNumber("idealMaxRange", idealMaxAutoRange);
         server.putNumber("idealMinRange", idealMinAutoRange);
+        server.putNumber("BOOM.ROT.PID.IN", 0d);
+//        if (boom.BOOM_ENABLED) {
+//            boom.set(Boom.HIGH_GOAL);
+//        }
+        //No point in checking boom enabled here because it will try to go
+        //to position "0" by default.
+            boom.set(PIDBoom.PID_PASS);
 
         
     }
@@ -297,6 +304,7 @@ public class Woolly extends IterativeRobot {
         double dist = ultrasonicSensor.getRangeInInches();
 
         imageMatchConfidence = server.getNumber("HOT_CONFIDENCE", 0.0);
+        updateBasedOnSmartDash();
 
         if (octo.get() && time < 3000) {
             rollerMotor.set(Relay.Value.kForward);
@@ -705,6 +713,7 @@ public class Woolly extends IterativeRobot {
     void printDebug() {
         
         server.putNumber("BOOM.ROT", rotEncoder.getAverageVoltage());
+        server.putNumber("BOOM.ROT.PID", rotEncoder.pidGet());
         server.putNumber("BOOM.LIN", stringEncoder.getAverageVoltage());
         server.putNumber("BOOM.RANGE.V", ultrasonicSensor.getAverageVoltage());
         server.putNumber("IMAGE.CONF", imageMatchConfidence);
@@ -742,7 +751,7 @@ public class Woolly extends IterativeRobot {
         cameraLEDB.set(false);
         signalLEDA.set(false);
         signalLEDB.set(false);
-        screwDrive.set(ScrewDrive.RESET);
+        //screwDrive.set(ScrewDrive.RESET);
         disableToggles();
     }
 
@@ -766,6 +775,12 @@ public class Woolly extends IterativeRobot {
         } catch (Throwable e) {
             System.out.println("failed to get tableKey=" + tableKey);
             return defaultValue;
+        }
+    }
+
+    private void updateBasedOnSmartDash() {
+        if (server.getNumber("BOOM.ROT.PID.IN") != 0) {
+            PIDBoom.PID_PASS = new Boom.Location(server.getNumber("BOOM.ROT.PID.IN"));
         }
     }
 }

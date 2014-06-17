@@ -9,8 +9,11 @@ import org.dirtymechanics.frc.sensor.RotationalEncoder;
  * @author Daniel Ruess
  */
 public class PIDBoom extends Boom {
-    static final double P = 3d;
+    static final double P = .018d;
    PIDSubsystem pid;
+   public static Location PID_PASS = new Boom.Location(500);//GROUND;//new Location(3.26);
+   public static final Location PID_ARM_UP_LIMIT = new Boom.Location(150);//GROUND;//new Location(3.26);
+   public static final Location PID_ARM_DOWN_LIMIT = new Boom.Location(800);//GROUND;//new Location(3.26);
 
 
     public PIDBoom(Talon motor, RotationalEncoder rot) {
@@ -19,9 +22,9 @@ public class PIDBoom extends Boom {
         pid = new BoomPIDController();
         //Boom does this in it's constructor, but without the pid 
         //  enabled that won't do anything.
-        if (BOOM_ENABLED) {
-            set(PASS);
-        }
+//        if (BOOM_ENABLED) {
+//            set(PASS);
+//        }
         
     }
     
@@ -33,11 +36,13 @@ public class PIDBoom extends Boom {
         }
 
         protected double returnPIDInput() {
+           
            return rot.pidGet();
        }
 
        protected void usePIDOutput(double output) {
            motor.set(output);
+           System.out.println("motor.set(" + output +") + "  + "rot.pidGet()=" + rot.pidGet() + " getSetpoint()=" + getSetpoint() + " getPostion()=" + getPosition());
 
        }
 
@@ -48,17 +53,18 @@ public class PIDBoom extends Boom {
     public final void set(Location dest) {
        super.set(dest);
        pid.setSetpoint(dest.loc);
+//        pid.setSetpoint(PID_PASS.loc);
     }
 
-    public void increaseOffset() {
-        dest -= .05;
-        pid.setSetpoint(dest);
-    }
-
-    public void decreaseOffset() {
-        dest += .05;
-        pid.setSetpoint(dest);
-    }
+//    public void increaseOffset() {
+//        dest -= .05;
+//        pid.setSetpoint(dest);
+//    }
+//
+//    public void decreaseOffset() {
+//        dest += .05;
+//        pid.setSetpoint(dest);
+//    }
 
     /**
      * overrides parent class method to do nothing.
